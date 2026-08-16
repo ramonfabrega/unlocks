@@ -44,8 +44,10 @@ function describe(before: Graph, after: Graph): string[] {
   const added = after.nodes.filter((n) => !beforeIds.has(n.id)).map((n) => n.label);
   const afterIds = new Set(after.nodes.map((n) => n.id));
   const removed = before.nodes.filter((n) => !afterIds.has(n.id)).map((n) => n.label);
-  if (added.length) lines.push(`+${added.length} node${added.length > 1 ? "s" : ""}: ${added.join(", ")}`);
-  if (removed.length) lines.push(`-${removed.length} node${removed.length > 1 ? "s" : ""}: ${removed.join(", ")}`);
+  if (added.length)
+    lines.push(`+${added.length} node${added.length > 1 ? "s" : ""}: ${added.join(", ")}`);
+  if (removed.length)
+    lines.push(`-${removed.length} node${removed.length > 1 ? "s" : ""}: ${removed.join(", ")}`);
 
   const key = (e: { from: string; to: string }) => `${e.from}->${e.to}`;
   const beforeEdges = new Map(before.edges.map((e) => [key(e), e.type]));

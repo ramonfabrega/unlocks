@@ -71,16 +71,12 @@ export function statuses(g: Graph, adj: Adjacency = adjacency(g)): Map<string, S
       continue;
     }
     const incoming = adj.preds.get(n.id) ?? [];
-    const blocked = incoming.some(
-      (e) => BLOCKING.has(e.type) && !adj.byId.get(e.from)?.done,
-    );
+    const blocked = incoming.some((e) => BLOCKING.has(e.type) && !adj.byId.get(e.from)?.done);
     if (blocked) {
       out.set(n.id, "locked");
       continue;
     }
-    const wantsMissing = incoming.some(
-      (e) => e.type === "soft" && !adj.byId.get(e.from)?.done,
-    );
+    const wantsMissing = incoming.some((e) => e.type === "soft" && !adj.byId.get(e.from)?.done);
     out.set(n.id, wantsMissing ? "possible" : "ready");
   }
   return out;
@@ -168,7 +164,10 @@ const MIN_W = 140;
 const tagWidth = (kind: NodeKind): number => (kind === "activity" ? 0 : TAG_W);
 
 export function nodeWidth(label: string, kind: NodeKind): number {
-  return Math.min(MAX_W, Math.max(MIN_W, Math.ceil(label.length * CHAR_W) + PAD_X + tagWidth(kind)));
+  return Math.min(
+    MAX_W,
+    Math.max(MIN_W, Math.ceil(label.length * CHAR_W) + PAD_X + tagWidth(kind)),
+  );
 }
 
 /** Only ever shortens labels that hit the MAX_W cap. */
@@ -183,7 +182,10 @@ export function fitLabel(label: string, width: number, kind: NodeKind): string {
  * placing a DAG feels good for ten minutes and then you dread editing it. Drag
  * a node and it pins; everything else keeps arranging itself around the pin.
  */
-export function layout(g: Graph, opts: { groupLanes: boolean } = { groupLanes: false }): Map<string, Placed> {
+export function layout(
+  g: Graph,
+  opts: { groupLanes: boolean } = { groupLanes: false },
+): Map<string, Placed> {
   const adj = adjacency(g);
   const order = topoOrder(g, adj);
 
@@ -199,7 +201,9 @@ export function layout(g: Graph, opts: { groupLanes: boolean } = { groupLanes: f
   const columns: string[][] = [];
   for (const n of g.nodes) {
     const l = layer.get(n.id) ?? 0;
-    (columns[l] ??= []).push(n.id);
+    const col = columns[l] ?? [];
+    col.push(n.id);
+    columns[l] = col;
   }
 
   // Seed each column by lane then label so the first paint is stable, then let
@@ -215,7 +219,9 @@ export function layout(g: Graph, opts: { groupLanes: boolean } = { groupLanes: f
 
   const pos = new Map<string, number>();
   const reindex = () => {
-    for (const col of columns) col.forEach((id, i) => pos.set(id, i));
+    for (const col of columns) {
+      for (const [i, id] of col.entries()) pos.set(id, i);
+    }
   };
   reindex();
 
@@ -271,7 +277,7 @@ export function layout(g: Graph, opts: { groupLanes: boolean } = { groupLanes: f
   columns.forEach((col, li) => {
     if (!col) return;
     const span = col.length * (NODE_H + ROW_GAP);
-    const top = ((tallest * (NODE_H + ROW_GAP)) - span) / 2;
+    const top = (tallest * (NODE_H + ROW_GAP) - span) / 2;
     col.forEach((id, i) => {
       const node = adj.byId.get(id);
       const w = nodeWidth(node?.label ?? id, node?.kind ?? "activity");

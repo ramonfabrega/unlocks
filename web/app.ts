@@ -6,13 +6,12 @@ import {
   layout,
   leverage,
   NODE_H,
-  statuses,
   type Placed,
   type Status,
+  statuses,
 } from "../src/derive.ts";
 import type { EdgeType, Graph, GraphEdge, GraphNode, Lane, NodeKind } from "../src/schema.ts";
 
-const SVG_NS = "http://www.w3.org/2000/svg";
 const LANES: Lane[] = ["quest", "pvm", "raid", "slayer", "skilling"];
 const KINDS: NodeKind[] = ["activity", "item", "milestone"];
 const EDGE_TYPES: EdgeType[] = ["grants", "hard", "soft"];
@@ -185,7 +184,10 @@ function renderNodes(
         `<text class="label" x="${p.x + 14}" y="${cy}">${esc(fitLabel(n.label, p.w, n.kind))}</text>` +
         (tag ? `<text class="kind" x="${p.x + p.w - 10}" y="${cy}">${tag}</text>` : "") +
         (n.verify ? `<text class="flag" x="${p.x + p.w - 8}" y="${p.y + 8}">?</text>` : "") +
-        `<circle class="handle" cx="${p.x + p.w}" cy="${cy}" r="5"></circle>` +
+        // Invisible hit target first, so grabbing the link handle doesn't
+        // demand 5px precision (a miss pans the canvas instead).
+        `<circle class="handle hit" cx="${p.x + p.w}" cy="${cy}" r="13"></circle>` +
+        `<circle class="handle knob" cx="${p.x + p.w}" cy="${cy}" r="5"></circle>` +
         `<title>${esc(n.label)}${n.note ? `\n${esc(n.note)}` : ""}</title>` +
         `</g>`,
     );
@@ -662,8 +664,7 @@ window.addEventListener("beforeunload", () => {
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 }
 

@@ -1,13 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { adjacency, ancestors, layout, leverage, statuses } from "./derive.ts";
-import { Graph, findCycle, validateGraph } from "./schema.ts";
+import { findCycle, Graph, validateGraph } from "./schema.ts";
 
 const real = Graph.parse(await Bun.file(new URL("../graph.json", import.meta.url)).json());
 
-const ok = (id: string) => ({ ...real.nodes.find((n) => n.id === id)!, done: true });
 const withDone = (...ids: string[]): Graph => ({
   ...real,
-  nodes: real.nodes.map((n) => (ids.includes(n.id) ? ok(n.id) : n)),
+  nodes: real.nodes.map((n) => (ids.includes(n.id) ? { ...n, done: true } : n)),
 });
 
 describe("graph.json", () => {
@@ -45,9 +44,9 @@ describe("status", () => {
     // "locked" and lands on "possible", not straight to "ready".
     expect(statuses(withDone("slayer-grind", "slayer-92")).get("araxxor")).toBe("possible");
     expect(
-      statuses(withDone("slayer-grind", "slayer-92", "song-of-elves", "gauntlet", "cg", "bowfa")).get(
-        "araxxor",
-      ),
+      statuses(
+        withDone("slayer-grind", "slayer-92", "song-of-elves", "gauntlet", "cg", "bowfa"),
+      ).get("araxxor"),
     ).toBe("ready");
   });
 
@@ -82,7 +81,15 @@ describe("leverage", () => {
 describe("ancestry", () => {
   test("the path to rancour runs through the Slayer grind", () => {
     const anc = ancestors("rancour", adjacency(real));
-    expect([...anc].sort()).toEqual(["araxxor", "bowfa", "cg", "gauntlet", "slayer-92", "slayer-grind", "song-of-elves"]);
+    expect([...anc].sort()).toEqual([
+      "araxxor",
+      "bowfa",
+      "cg",
+      "gauntlet",
+      "slayer-92",
+      "slayer-grind",
+      "song-of-elves",
+    ]);
   });
 });
 
@@ -104,7 +111,7 @@ describe("layout", () => {
     for (const e of real.edges) {
       const from = placed.get(e.from);
       const to = placed.get(e.to);
-      expect(from!.layer).toBeLessThan(to!.layer);
+      expect(from?.layer ?? -1).toBeLessThan(to?.layer ?? -1);
     }
   });
 });
@@ -115,7 +122,10 @@ describe("cycle detection", () => {
     // level milestone is the mistake the milestone-node design exists to avoid.
     const looped: Graph = {
       ...real,
-      edges: [...real.edges, { from: "cerberus", to: "slayer-91", type: "grants", note: "", verify: false }],
+      edges: [
+        ...real.edges,
+        { from: "cerberus", to: "slayer-91", type: "grants", note: "", verify: false },
+      ],
     };
     expect(findCycle(looped)).not.toBeNull();
     expect(validateGraph(looped).some((e) => e.startsWith("cycle:"))).toBe(true);
