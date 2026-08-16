@@ -1,4 +1,4 @@
-import type { Graph, GraphEdge, GraphNode } from "./schema.ts";
+import type { Graph, GraphEdge, GraphNode, NodeKind } from "./schema.ts";
 
 /**
  * Nothing here is stored. Status, leverage and position are all recomputed from
@@ -154,8 +154,27 @@ export const ROW_GAP = 18;
 export const COL_GAP = 88;
 export const LANE_ORDER: readonly string[] = ["quest", "pvm", "raid", "slayer", "skilling"];
 
-export function nodeWidth(label: string): number {
-  return Math.min(250, Math.max(140, Math.round(label.length * 7.4) + 42));
+/**
+ * nodeWidth and fitLabel share these constants on purpose — when they drift the
+ * box is sized for a label the renderer then truncates, and every node loses a
+ * character for no reason.
+ */
+const CHAR_W = 7;
+const PAD_X = 30;
+const TAG_W = 26;
+const MAX_W = 260;
+const MIN_W = 140;
+
+const tagWidth = (kind: NodeKind): number => (kind === "activity" ? 0 : TAG_W);
+
+export function nodeWidth(label: string, kind: NodeKind): number {
+  return Math.min(MAX_W, Math.max(MIN_W, Math.ceil(label.length * CHAR_W) + PAD_X + tagWidth(kind)));
+}
+
+/** Only ever shortens labels that hit the MAX_W cap. */
+export function fitLabel(label: string, width: number, kind: NodeKind): string {
+  const max = Math.max(4, Math.floor((width - PAD_X - tagWidth(kind)) / CHAR_W));
+  return label.length <= max ? label : `${label.slice(0, max - 1)}…`;
 }
 
 /**
@@ -232,7 +251,13 @@ export function layout(g: Graph, opts: { groupLanes: boolean } = { groupLanes: f
 
   // Columns are as wide as their widest box, so long labels never overlap.
   const widths = columns.map((col) =>
-    Math.max(...(col ?? []).map((id) => nodeWidth(adj.byId.get(id)?.label ?? id)), 140),
+    Math.max(
+      ...(col ?? []).map((id) => {
+        const n = adj.byId.get(id);
+        return nodeWidth(n?.label ?? id, n?.kind ?? "activity");
+      }),
+      MIN_W,
+    ),
   );
   const xs: number[] = [];
   let cursor = 0;
@@ -249,7 +274,7 @@ export function layout(g: Graph, opts: { groupLanes: boolean } = { groupLanes: f
     const top = ((tallest * (NODE_H + ROW_GAP)) - span) / 2;
     col.forEach((id, i) => {
       const node = adj.byId.get(id);
-      const w = nodeWidth(node?.label ?? id);
+      const w = nodeWidth(node?.label ?? id, node?.kind ?? "activity");
       placed.set(id, {
         id,
         x: node?.pin?.x ?? xs[li] ?? 0,

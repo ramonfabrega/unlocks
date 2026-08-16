@@ -65,19 +65,29 @@ function describe(before: Graph, after: Graph): string[] {
   return lines;
 }
 
-let pending: string[] = [];
 let commitTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * The message is derived at commit time by diffing the committed graph against
+ * the current one — never accumulated per-request. Within one debounce window
+ * you can tick a node and untick it again, and a running tally would describe
+ * changes that are no longer in the tree.
+ */
 async function commit(): Promise<void> {
   commitTimer = null;
-  const lines = pending;
-  pending = [];
-  if (!GIT || !lines.length) return;
+  if (!GIT) return;
   try {
     const inRepo = await Bun.$`git rev-parse --is-inside-work-tree`.cwd(ROOT).quiet().nothrow();
     if (inRepo.exitCode !== 0) return;
     const dirty = await Bun.$`git status --porcelain -- graph.json`.cwd(ROOT).quiet().nothrow();
     if (!dirty.stdout.toString().trim()) return;
+
+    let lines: string[] = [];
+    const head = await Bun.$`git show HEAD:graph.json`.cwd(ROOT).quiet().nothrow();
+    if (head.exitCode === 0) {
+      const parsed = Graph.safeParse(JSON.parse(head.stdout.toString()));
+      if (parsed.success) lines = describe(parsed.data, graph);
+    }
 
     const subject = lines[0] ?? "update graph";
     const body = lines.slice(1).join("\n");
@@ -91,16 +101,18 @@ async function commit(): Promise<void> {
   }
 }
 
-function scheduleCommit(lines: string[]): void {
-  if (!lines.length) return;
-  pending.push(...lines);
+function scheduleCommit(): void {
+  if (!GIT) return;
   if (commitTimer) clearTimeout(commitTimer);
   commitTimer = setTimeout(() => void commit(), COMMIT_DEBOUNCE_MS);
 }
 
 const server = Bun.serve({
   port: PORT,
-  development: process.env.NODE_ENV !== "production",
+  // Off by default: Bun's dev overlay covers the app whenever a browser
+  // extension throws on the page, which has nothing to do with this code.
+  // `bun run dev` turns it back on when you're actually editing source.
+  development: process.env.UNLOCKS_DEV === "1",
   routes: {
     "/": index,
 
@@ -125,11 +137,10 @@ const server = Bun.serve({
         const errors = validateGraph(parsed.data);
         if (errors.length) return Response.json({ error: errors.join("; ") }, { status: 400 });
 
-        const lines = describe(graph, parsed.data);
         graph = parsed.data;
         await Bun.write(FILE, `${JSON.stringify(graph, null, 2)}\n`);
-        scheduleCommit(lines);
-        return Response.json({ ok: true, staged: pending.length });
+        scheduleCommit();
+        return Response.json({ ok: true });
       },
     },
 

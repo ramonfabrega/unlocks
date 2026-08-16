@@ -1,111 +1,785 @@
 {
   "version": 1,
   "nodes": [
-    { "id": "song-of-elves", "label": "Song of the Elves", "kind": "activity", "lane": "quest", "done": false, "note": "Hard gate for Gauntlet.", "wiki": "https://oldschool.runescape.wiki/w/Song_of_the_Elves", "verify": false, "pin": null },
-    { "id": "dt2", "label": "Desert Treasure II", "kind": "activity", "lane": "quest", "done": false, "note": "Unlocks the four awakened bosses and the vestige/ring system.", "wiki": "https://oldschool.runescape.wiki/w/Desert_Treasure_II_-_The_Fallen_Empire", "verify": false, "pin": null },
-
-    { "id": "gauntlet", "label": "The Gauntlet", "kind": "activity", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/The_Gauntlet", "verify": false, "pin": null },
-    { "id": "cg", "label": "Corrupted Gauntlet", "kind": "activity", "lane": "pvm", "done": false, "note": "The single highest-leverage node in your list.", "wiki": "https://oldschool.runescape.wiki/w/Corrupted_Gauntlet", "verify": false, "pin": null },
-    { "id": "bowfa", "label": "Bow of Faerdhinen", "kind": "item", "lane": "pvm", "done": false, "note": "Crystal weapon seed + 120 shards.", "wiki": "https://oldschool.runescape.wiki/w/Bow_of_Faerdhinen", "verify": false, "pin": null },
-    { "id": "crystal-armour", "label": "Full crystal armour", "kind": "item", "lane": "pvm", "done": false, "note": "3x armour seed.", "wiki": "https://oldschool.runescape.wiki/w/Crystal_armour", "verify": false, "pin": null },
-
-    { "id": "muspah", "label": "Phantom Muspah", "kind": "activity", "lane": "pvm", "done": false, "note": "You can already kill this — it shows as 'possible' until bowfa lands.", "wiki": "https://oldschool.runescape.wiki/w/Phantom_Muspah", "verify": false, "pin": null },
-    { "id": "venator-bow", "label": "Venator bow", "kind": "item", "lane": "pvm", "done": false, "note": "5x venator shard.", "wiki": "https://oldschool.runescape.wiki/w/Venator_bow", "verify": false, "pin": null },
-
-    { "id": "zulrah", "label": "Zulrah", "kind": "activity", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Zulrah", "verify": false, "pin": null },
-    { "id": "blowpipe", "label": "Toxic blowpipe", "kind": "item", "lane": "pvm", "done": false, "note": "Tanzanite fang.", "wiki": "https://oldschool.runescape.wiki/w/Toxic_blowpipe", "verify": false, "pin": null },
-
-    { "id": "leviathan", "label": "The Leviathan", "kind": "activity", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/The_Leviathan", "verify": false, "pin": null },
-    { "id": "venator-ring", "label": "Venator ring", "kind": "item", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Venator_ring", "verify": false, "pin": null },
-
-    { "id": "yama", "label": "Yama", "kind": "activity", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Yama", "verify": true, "pin": null },
-    { "id": "oathplate", "label": "Oathplate armour", "kind": "item", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Oathplate_armour", "verify": true, "pin": null },
-    { "id": "duke", "label": "Duke Sucellus", "kind": "activity", "lane": "pvm", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Duke_Sucellus", "verify": false, "pin": null },
-    { "id": "magus-ring", "label": "Magus ring", "kind": "item", "lane": "pvm", "done": false, "note": "Magus vestige.", "wiki": "https://oldschool.runescape.wiki/w/Magus_ring", "verify": false, "pin": null },
-
-    { "id": "cox", "label": "Chambers of Xeric", "kind": "activity", "lane": "raid", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Chambers_of_Xeric", "verify": false, "pin": null },
-    { "id": "dex-scroll", "label": "Dexterous prayer scroll", "kind": "item", "lane": "raid", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Dexterous_prayer_scroll", "verify": false, "pin": null },
-    { "id": "rigour", "label": "Rigour", "kind": "milestone", "lane": "raid", "done": false, "note": "74 Prayer to use.", "wiki": "https://oldschool.runescape.wiki/w/Rigour", "verify": false, "pin": null },
-    { "id": "toa", "label": "Tombs of Amascut", "kind": "activity", "lane": "raid", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Tombs_of_Amascut", "verify": false, "pin": null },
-    { "id": "lightbearer", "label": "Lightbearer", "kind": "item", "lane": "raid", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Lightbearer", "verify": false, "pin": null },
-
-    { "id": "slayer-grind", "label": "Slayer grind", "kind": "activity", "lane": "slayer", "done": false, "note": "The engine node. Levels hang off this, never off the bosses gated behind them — that's what keeps the graph acyclic.", "wiki": "https://oldschool.runescape.wiki/w/Slayer", "verify": false, "pin": null },
-    { "id": "imbued-heart", "label": "Imbued heart", "kind": "item", "lane": "slayer", "done": false, "note": "Superior slayer encounters.", "wiki": "https://oldschool.runescape.wiki/w/Imbued_heart", "verify": false, "pin": null },
-    { "id": "herb-sack", "label": "Herb sack", "kind": "item", "lane": "slayer", "done": false, "note": "Slayer reward points.", "wiki": "https://oldschool.runescape.wiki/w/Herb_sack", "verify": false, "pin": null },
-    { "id": "salvaging", "label": "Salvaging (?)", "kind": "activity", "lane": "slayer", "done": false, "note": "You had this nested under herb sack and I couldn't place it — rename or delete. What did you mean?", "wiki": "", "verify": true, "pin": null },
-
-    { "id": "slayer-91", "label": "91 Slayer", "kind": "milestone", "lane": "slayer", "done": false, "note": "", "wiki": "", "verify": false, "pin": null },
-    { "id": "slayer-92", "label": "92 Slayer", "kind": "milestone", "lane": "slayer", "done": false, "note": "", "wiki": "", "verify": false, "pin": null },
-    { "id": "slayer-93", "label": "93 Slayer", "kind": "milestone", "lane": "slayer", "done": false, "note": "", "wiki": "", "verify": false, "pin": null },
-    { "id": "slayer-95", "label": "95 Slayer", "kind": "milestone", "lane": "slayer", "done": false, "note": "", "wiki": "", "verify": false, "pin": null },
-
-    { "id": "cerberus", "label": "Cerberus", "kind": "activity", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Cerberus", "verify": false, "pin": null },
-    { "id": "primordials", "label": "Primordial boots", "kind": "item", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Primordial_boots", "verify": false, "pin": null },
-    { "id": "araxxor", "label": "Araxxor", "kind": "activity", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Araxxor", "verify": false, "pin": null },
-    { "id": "rancour", "label": "Amulet of rancour", "kind": "item", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Amulet_of_rancour", "verify": false, "pin": null },
-    { "id": "smoke-devils", "label": "Smoke devils", "kind": "activity", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Smoke_devil", "verify": false, "pin": null },
-    { "id": "occult", "label": "Occult necklace", "kind": "item", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Occult_necklace", "verify": false, "pin": null },
-    { "id": "hydra", "label": "Alchemical Hydra", "kind": "activity", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Alchemical_Hydra", "verify": false, "pin": null },
-    { "id": "fero-gloves", "label": "Ferocious gloves", "kind": "item", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Ferocious_gloves", "verify": false, "pin": null },
-    { "id": "dhl", "label": "Dragon hunter lance", "kind": "item", "lane": "slayer", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Dragon_hunter_lance", "verify": false, "pin": null },
-
-    { "id": "pyramid-plunder", "label": "Pyramid Plunder", "kind": "activity", "lane": "skilling", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Pyramid_Plunder", "verify": false, "pin": null },
-    { "id": "sceptre", "label": "Pharaoh's sceptre", "kind": "item", "lane": "skilling", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Pharaoh's_sceptre", "verify": false, "pin": null },
-    { "id": "wealthy-citizens", "label": "Wealthy citizens (AFK)", "kind": "activity", "lane": "skilling", "done": false, "note": "Sceptre teleport makes the Pollnivneach trip trivial.", "wiki": "https://oldschool.runescape.wiki/w/Wealthy_citizen", "verify": true, "pin": null },
-    { "id": "construction", "label": "Construction", "kind": "activity", "lane": "skilling", "done": false, "note": "You listed this bare — hang its unlocks off it when you decide what you're after.", "wiki": "https://oldschool.runescape.wiki/w/Construction", "verify": false, "pin": null },
-    { "id": "hunter-91", "label": "91 Hunter", "kind": "milestone", "lane": "skilling", "done": false, "note": "", "wiki": "", "verify": false, "pin": null },
-    { "id": "hunter-rumours", "label": "Master hunter rumours", "kind": "activity", "lane": "skilling", "done": false, "note": "", "wiki": "https://oldschool.runescape.wiki/w/Hunter_Rumours", "verify": true, "pin": null }
+    {
+      "id": "song-of-elves",
+      "label": "Song of the Elves",
+      "kind": "activity",
+      "lane": "quest",
+      "done": false,
+      "note": "Hard gate for Gauntlet.",
+      "wiki": "https://oldschool.runescape.wiki/w/Song_of_the_Elves",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "dt2",
+      "label": "Desert Treasure II",
+      "kind": "activity",
+      "lane": "quest",
+      "done": false,
+      "note": "Unlocks the four awakened bosses and the vestige/ring system.",
+      "wiki": "https://oldschool.runescape.wiki/w/Desert_Treasure_II_-_The_Fallen_Empire",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "gauntlet",
+      "label": "The Gauntlet",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/The_Gauntlet",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "cg",
+      "label": "Corrupted Gauntlet",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "The single highest-leverage node in your list.",
+      "wiki": "https://oldschool.runescape.wiki/w/Corrupted_Gauntlet",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "bowfa",
+      "label": "Bow of Faerdhinen",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "Crystal weapon seed + 120 shards.",
+      "wiki": "https://oldschool.runescape.wiki/w/Bow_of_Faerdhinen",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "crystal-armour",
+      "label": "Full crystal armour",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "3x armour seed.",
+      "wiki": "https://oldschool.runescape.wiki/w/Crystal_armour",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "muspah",
+      "label": "Phantom Muspah",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "You can already kill this — it shows as 'possible' until bowfa lands.",
+      "wiki": "https://oldschool.runescape.wiki/w/Phantom_Muspah",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "venator-bow",
+      "label": "Venator bow",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "5x venator shard.",
+      "wiki": "https://oldschool.runescape.wiki/w/Venator_bow",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "zulrah",
+      "label": "Zulrah",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Zulrah",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "blowpipe",
+      "label": "Toxic blowpipe",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "Tanzanite fang.",
+      "wiki": "https://oldschool.runescape.wiki/w/Toxic_blowpipe",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "leviathan",
+      "label": "The Leviathan",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/The_Leviathan",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "venator-ring",
+      "label": "Venator ring",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Venator_ring",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "yama",
+      "label": "Yama",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Yama",
+      "verify": true,
+      "pin": null
+    },
+    {
+      "id": "oathplate",
+      "label": "Oathplate armour",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Oathplate_armour",
+      "verify": true,
+      "pin": null
+    },
+    {
+      "id": "duke",
+      "label": "Duke Sucellus",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Duke_Sucellus",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "magus-ring",
+      "label": "Magus ring",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "Magus vestige.",
+      "wiki": "https://oldschool.runescape.wiki/w/Magus_ring",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "cox",
+      "label": "Chambers of Xeric",
+      "kind": "activity",
+      "lane": "raid",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Chambers_of_Xeric",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "dex-scroll",
+      "label": "Dexterous prayer scroll",
+      "kind": "item",
+      "lane": "raid",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Dexterous_prayer_scroll",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "rigour",
+      "label": "Rigour",
+      "kind": "milestone",
+      "lane": "raid",
+      "done": false,
+      "note": "74 Prayer to use.",
+      "wiki": "https://oldschool.runescape.wiki/w/Rigour",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "toa",
+      "label": "Tombs of Amascut",
+      "kind": "activity",
+      "lane": "raid",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Tombs_of_Amascut",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "lightbearer",
+      "label": "Lightbearer",
+      "kind": "item",
+      "lane": "raid",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Lightbearer",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "slayer-grind",
+      "label": "Slayer grind",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "The engine node. Levels hang off this, never off the bosses gated behind them — that's what keeps the graph acyclic.",
+      "wiki": "https://oldschool.runescape.wiki/w/Slayer",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "imbued-heart",
+      "label": "Imbued heart",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "Superior slayer encounters.",
+      "wiki": "https://oldschool.runescape.wiki/w/Imbued_heart",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "herb-sack",
+      "label": "Herb sack",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "Slayer reward points.",
+      "wiki": "https://oldschool.runescape.wiki/w/Herb_sack",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "salvaging",
+      "label": "Salvaging (?)",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "You had this nested under herb sack and I couldn't place it — rename or delete. What did you mean?",
+      "wiki": "",
+      "verify": true,
+      "pin": null
+    },
+    {
+      "id": "slayer-91",
+      "label": "91 Slayer",
+      "kind": "milestone",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "slayer-92",
+      "label": "92 Slayer",
+      "kind": "milestone",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "slayer-93",
+      "label": "93 Slayer",
+      "kind": "milestone",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "slayer-95",
+      "label": "95 Slayer",
+      "kind": "milestone",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "cerberus",
+      "label": "Cerberus",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Cerberus",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "primordials",
+      "label": "Primordial boots",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Primordial_boots",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "araxxor",
+      "label": "Araxxor",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Araxxor",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "rancour",
+      "label": "Amulet of rancour",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Amulet_of_rancour",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "smoke-devils",
+      "label": "Smoke devils",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Smoke_devil",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "occult",
+      "label": "Occult necklace",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Occult_necklace",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "hydra",
+      "label": "Alchemical Hydra",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Alchemical_Hydra",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "fero-gloves",
+      "label": "Ferocious gloves",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Ferocious_gloves",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "dhl",
+      "label": "Dragon hunter lance",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Dragon_hunter_lance",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "pyramid-plunder",
+      "label": "Pyramid Plunder",
+      "kind": "activity",
+      "lane": "skilling",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Pyramid_Plunder",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "sceptre",
+      "label": "Pharaoh's sceptre",
+      "kind": "item",
+      "lane": "skilling",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Pharaoh's_sceptre",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "wealthy-citizens",
+      "label": "Wealthy citizens (AFK)",
+      "kind": "activity",
+      "lane": "skilling",
+      "done": false,
+      "note": "Sceptre teleport makes the Pollnivneach trip trivial.",
+      "wiki": "https://oldschool.runescape.wiki/w/Wealthy_citizen",
+      "verify": true,
+      "pin": null
+    },
+    {
+      "id": "construction",
+      "label": "Construction",
+      "kind": "activity",
+      "lane": "skilling",
+      "done": false,
+      "note": "You listed this bare — hang its unlocks off it when you decide what you're after.",
+      "wiki": "https://oldschool.runescape.wiki/w/Construction",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "hunter-91",
+      "label": "91 Hunter",
+      "kind": "milestone",
+      "lane": "skilling",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "hunter-rumours",
+      "label": "Master hunter rumours",
+      "kind": "activity",
+      "lane": "skilling",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Hunter_Rumours",
+      "verify": true,
+      "pin": null
+    }
   ],
   "edges": [
-    { "from": "song-of-elves", "to": "gauntlet", "type": "hard", "note": "", "verify": false },
-    { "from": "gauntlet", "to": "cg", "type": "soft", "note": "Learn the normal version first.", "verify": false },
-    { "from": "cg", "to": "bowfa", "type": "grants", "note": "", "verify": false },
-    { "from": "cg", "to": "crystal-armour", "type": "grants", "note": "", "verify": false },
-
-    { "from": "bowfa", "to": "muspah", "type": "soft", "note": "Your call: killable now, better after.", "verify": false },
-    { "from": "bowfa", "to": "zulrah", "type": "soft", "note": "", "verify": false },
-    { "from": "bowfa", "to": "cox", "type": "soft", "note": "", "verify": false },
-    { "from": "bowfa", "to": "araxxor", "type": "soft", "note": "", "verify": false },
-
-    { "from": "muspah", "to": "venator-bow", "type": "grants", "note": "", "verify": false },
-    { "from": "zulrah", "to": "blowpipe", "type": "grants", "note": "", "verify": false },
-
-    { "from": "dt2", "to": "leviathan", "type": "hard", "note": "", "verify": false },
-    { "from": "dt2", "to": "duke", "type": "hard", "note": "", "verify": false },
-    { "from": "blowpipe", "to": "leviathan", "type": "soft", "note": "", "verify": false },
-    { "from": "lightbearer", "to": "leviathan", "type": "soft", "note": "", "verify": false },
-    { "from": "leviathan", "to": "venator-ring", "type": "grants", "note": "", "verify": false },
-
-    { "from": "yama", "to": "oathplate", "type": "grants", "note": "", "verify": false },
-    { "from": "oathplate", "to": "duke", "type": "soft", "note": "Your note: 'would be nice, not really hard locked'.", "verify": false },
-    { "from": "lightbearer", "to": "duke", "type": "soft", "note": "", "verify": false },
-    { "from": "duke", "to": "magus-ring", "type": "grants", "note": "", "verify": false },
-
-    { "from": "cox", "to": "dex-scroll", "type": "grants", "note": "", "verify": false },
-    { "from": "dex-scroll", "to": "rigour", "type": "hard", "note": "", "verify": false },
-    { "from": "rigour", "to": "toa", "type": "soft", "note": "", "verify": false },
-    { "from": "toa", "to": "lightbearer", "type": "grants", "note": "", "verify": false },
-
-    { "from": "slayer-grind", "to": "slayer-91", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-grind", "to": "slayer-92", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-grind", "to": "slayer-93", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-grind", "to": "slayer-95", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-grind", "to": "imbued-heart", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-grind", "to": "herb-sack", "type": "grants", "note": "", "verify": false },
-    { "from": "herb-sack", "to": "salvaging", "type": "soft", "note": "Transcribed from your nesting.", "verify": true },
-
-    { "from": "slayer-91", "to": "cerberus", "type": "hard", "note": "", "verify": false },
-    { "from": "cerberus", "to": "primordials", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-92", "to": "araxxor", "type": "hard", "note": "", "verify": false },
-    { "from": "araxxor", "to": "rancour", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-93", "to": "smoke-devils", "type": "hard", "note": "", "verify": false },
-    { "from": "smoke-devils", "to": "occult", "type": "grants", "note": "", "verify": false },
-    { "from": "slayer-95", "to": "hydra", "type": "hard", "note": "", "verify": false },
-    { "from": "hydra", "to": "fero-gloves", "type": "grants", "note": "", "verify": false },
-    { "from": "hydra", "to": "dhl", "type": "grants", "note": "", "verify": false },
-
-    { "from": "pyramid-plunder", "to": "sceptre", "type": "grants", "note": "", "verify": false },
-    { "from": "sceptre", "to": "wealthy-citizens", "type": "soft", "note": "Transcribed from your nesting.", "verify": false },
-    { "from": "hunter-91", "to": "hunter-rumours", "type": "hard", "note": "Master tier.", "verify": true }
+    {
+      "from": "song-of-elves",
+      "to": "gauntlet",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "gauntlet",
+      "to": "cg",
+      "type": "soft",
+      "note": "Learn the normal version first.",
+      "verify": false
+    },
+    {
+      "from": "cg",
+      "to": "bowfa",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "cg",
+      "to": "crystal-armour",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "bowfa",
+      "to": "muspah",
+      "type": "soft",
+      "note": "Your call: killable now, better after.",
+      "verify": false
+    },
+    {
+      "from": "bowfa",
+      "to": "zulrah",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "bowfa",
+      "to": "cox",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "bowfa",
+      "to": "araxxor",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "muspah",
+      "to": "venator-bow",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "zulrah",
+      "to": "blowpipe",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "dt2",
+      "to": "leviathan",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "dt2",
+      "to": "duke",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "blowpipe",
+      "to": "leviathan",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "lightbearer",
+      "to": "leviathan",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "leviathan",
+      "to": "venator-ring",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "yama",
+      "to": "oathplate",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "oathplate",
+      "to": "duke",
+      "type": "soft",
+      "note": "Your note: 'would be nice, not really hard locked'.",
+      "verify": false
+    },
+    {
+      "from": "lightbearer",
+      "to": "duke",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "duke",
+      "to": "magus-ring",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "cox",
+      "to": "dex-scroll",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "dex-scroll",
+      "to": "rigour",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "rigour",
+      "to": "toa",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "toa",
+      "to": "lightbearer",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "slayer-91",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "slayer-92",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "slayer-93",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "slayer-95",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "imbued-heart",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "herb-sack",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "herb-sack",
+      "to": "salvaging",
+      "type": "soft",
+      "note": "Transcribed from your nesting.",
+      "verify": true
+    },
+    {
+      "from": "slayer-91",
+      "to": "cerberus",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "cerberus",
+      "to": "primordials",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-92",
+      "to": "araxxor",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "araxxor",
+      "to": "rancour",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-93",
+      "to": "smoke-devils",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "smoke-devils",
+      "to": "occult",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "slayer-95",
+      "to": "hydra",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "hydra",
+      "to": "fero-gloves",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "hydra",
+      "to": "dhl",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "pyramid-plunder",
+      "to": "sceptre",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "sceptre",
+      "to": "wealthy-citizens",
+      "type": "soft",
+      "note": "Transcribed from your nesting.",
+      "verify": false
+    },
+    {
+      "from": "hunter-91",
+      "to": "hunter-rumours",
+      "type": "hard",
+      "note": "Master tier.",
+      "verify": true
+    }
   ]
 }

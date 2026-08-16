@@ -2,6 +2,7 @@ import {
   adjacency,
   ancestors,
   descendants,
+  fitLabel,
   layout,
   leverage,
   NODE_H,
@@ -106,11 +107,6 @@ function wouldCycle(from: string, to: string): boolean {
   return descendants(to, adjacency(graph)).has(from);
 }
 
-function truncate(text: string, width: number): string {
-  const max = Math.max(4, Math.floor((width - 52) / 6.9));
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
-}
-
 const matchesQuery = (n: GraphNode): boolean =>
   !query || n.label.toLowerCase().includes(query) || n.id.includes(query);
 
@@ -186,7 +182,7 @@ function renderNodes(
       `<g class="${cls}" data-id="${n.id}">` +
         `<rect class="box" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}"></rect>` +
         `<rect class="stripe" x="${p.x + 3}" y="${p.y + 7}" width="3" height="${p.h - 14}"></rect>` +
-        `<text class="label" x="${p.x + 14}" y="${cy}">${esc(truncate(n.label, p.w))}</text>` +
+        `<text class="label" x="${p.x + 14}" y="${cy}">${esc(fitLabel(n.label, p.w, n.kind))}</text>` +
         (tag ? `<text class="kind" x="${p.x + p.w - 10}" y="${cy}">${tag}</text>` : "") +
         (n.verify ? `<text class="flag" x="${p.x + p.w - 8}" y="${p.y + 8}">?</text>` : "") +
         `<circle class="handle" cx="${p.x + p.w}" cy="${cy}" r="5"></circle>` +
@@ -436,8 +432,11 @@ function fitToContent(): void {
   }
   const r = svg.getBoundingClientRect();
   const pad = 48;
-  const k = Math.min((r.width - pad * 2) / (maxX - minX), (r.height - pad * 2) / (maxY - minY), 1.1);
-  view.k = Math.max(0.15, k);
+  // Deliberately NOT fit-to-everything: a 10-layer DAG squeezed into one screen
+  // is unreadable. Start at a zoom where labels are legible, pinned to the roots
+  // on the left, and let the user pan rightward through the progression.
+  const fit = Math.min((r.height - pad * 2) / (maxY - minY), 1);
+  view.k = Math.min(1, Math.max(0.55, fit));
   view.x = pad - minX * view.k;
   view.y = (r.height - (maxY - minY) * view.k) / 2 - minY * view.k;
 }
