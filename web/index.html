@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>unlocks</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <aside id="left" class="panel">
+      <header class="brand">
+        <h1>unlocks</h1>
+        <span id="save-state" class="save">saved</span>
+      </header>
+
+      <input id="search" type="search" placeholder="Search nodes…" autocomplete="off" />
+
+      <section class="block">
+        <h2>Do now <span id="frontier-count" class="count"></span></h2>
+        <p class="hint">Nothing hard-locked. Sorted by how much sits behind it.</p>
+        <ul id="frontier" class="list"></ul>
+      </section>
+
+      <section class="block">
+        <h2>Blocked next <span id="soon-count" class="count"></span></h2>
+        <p class="hint">One unlock away.</p>
+        <ul id="soon" class="list"></ul>
+      </section>
+
+      <section class="block">
+        <h2>Lanes</h2>
+        <div id="lanes" class="chips"></div>
+      </section>
+
+      <section class="block">
+        <h2>Legend</h2>
+        <ul class="legend">
+          <li><i class="sw done"></i> done</li>
+          <li><i class="sw ready"></i> ready — everything you wanted is in hand</li>
+          <li><i class="sw possible"></i> possible — game allows it, gear doesn't</li>
+          <li><i class="sw locked"></i> locked — hard requirement missing</li>
+        </ul>
+        <ul class="legend">
+          <li><i class="ln grants"></i> grants</li>
+          <li><i class="ln hard"></i> hard requirement</li>
+          <li><i class="ln soft"></i> want first</li>
+        </ul>
+      </section>
+
+      <footer class="foot">
+        <button id="add-node" type="button">+ node</button>
+        <button id="relayout" type="button" title="Clear every manual position">unpin all</button>
+        <label class="toggle"><input id="group-lanes" type="checkbox" /> group lanes</label>
+        <p id="stats" class="stats"></p>
+      </footer>
+    </aside>
+
+    <main id="canvas-wrap">
+      <svg id="canvas" aria-label="progression graph">
+        <defs>
+          <marker id="arrow-grants" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" />
+          </marker>
+          <marker id="arrow-hard" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" />
+          </marker>
+          <marker id="arrow-soft" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" />
+          </marker>
+        </defs>
+        <g id="viewport">
+          <g id="edges"></g>
+          <g id="nodes"></g>
+          <path id="drag-edge" class="drag-edge" />
+        </g>
+      </svg>
+      <div id="hud" class="hud">
+        <span>drag canvas to pan · scroll to zoom · drag the ◦ handle to link</span>
+      </div>
+    </main>
+
+    <aside id="right" class="panel hidden"></aside>
+
+    <script type="module" src="./app.ts"></script>
+  </body>
+</html>

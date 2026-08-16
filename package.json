@@ -1,0 +1,22 @@
+{
+  "name": "unlocks",
+  "type": "module",
+  "private": true,
+  "description": "Ironman progression DAG — what unlocks what, and what to do next",
+  "scripts": {
+    "graph": "bun src/server.ts",
+    "start": "bun src/server.ts",
+    "dev": "bun --hot src/server.ts",
+    "typecheck": "bun tsc --noEmit",
+    "check": "biome check --write",
+    "ci": "biome ci"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.12",
+    "@types/bun": "latest",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}
