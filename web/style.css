@@ -328,6 +328,11 @@ button.primary {
   overflow: hidden;
   background: var(--bg);
 }
+
+/* The browser must not claim pan/pinch — this element handles both itself. */
+#canvas {
+  touch-action: none;
+}
 #canvas {
   width: 100%;
   height: 100%;
@@ -568,4 +573,131 @@ button.primary {
   padding: 7px 9px;
   font-size: 11px;
   color: #e0c48a;
+}
+
+/* ---------------------------------------------------------------- mobile */
+
+/* Chrome that only exists on small screens. */
+#topbar,
+#scrim,
+.sheet-close {
+  display: none;
+}
+
+/* Fingers are not mice: bump every tap target regardless of viewport width. */
+@media (pointer: coarse) {
+  .list li {
+    padding: 10px 8px;
+  }
+  button {
+    padding: 9px 13px;
+  }
+  .chip {
+    padding: 7px 12px;
+  }
+  .dep {
+    padding: 7px 5px;
+  }
+  .dep .x {
+    padding: 6px 11px;
+  }
+  .dep select {
+    flex-basis: 96px;
+    padding: 5px 4px;
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 52px 1fr;
+  }
+
+  #topbar {
+    display: flex;
+    grid-row: 1;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  #topbar h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 650;
+  }
+  #topbar .save {
+    margin-left: auto;
+  }
+  #topbar button {
+    font-size: 17px;
+    line-height: 1;
+    padding: 8px 12px;
+  }
+
+  #canvas-wrap {
+    grid-row: 2;
+  }
+  .hud {
+    display: none;
+  }
+
+  /* Sidebar becomes a drawer; it would otherwise eat most of a phone screen. */
+  #left {
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(86vw, 330px);
+    transform: translateX(-102%);
+    transition: transform 0.22s ease;
+    box-shadow: 0 0 40px #000a;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  body.drawer-open #left {
+    transform: none;
+  }
+  #left .brand {
+    display: none; /* the topbar already carries the title and save state */
+  }
+
+  #scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: #000a;
+  }
+  body.drawer-open #scrim {
+    display: block;
+  }
+
+  /* Node details become a bottom sheet rather than a third column. */
+  #right {
+    position: fixed;
+    z-index: 25;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 60vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -8px 40px #000a;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  #right .foot {
+    margin-top: 12px;
+  }
+
+  .sheet-close {
+    display: block;
+    margin-left: 8px;
+    padding: 4px 11px;
+    font-size: 17px;
+    line-height: 1;
+  }
 }

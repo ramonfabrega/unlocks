@@ -70,18 +70,31 @@ and a test pins it.
 
 Everything is in the UI — you never open `graph.json` by hand.
 
-| | |
-| --- | --- |
-| add a node | `+ node`, or drag the `◦` handle off an existing one |
-| link two nodes | drag the `◦` handle onto the target (defaults to `soft`) |
-| change an edge type | the dropdown next to it in **needs** / **unlocks** |
-| tick a node | double-click it, or `space` with it selected |
-| trace a path | select a node → **show path**, or `f` |
-| reposition | drag it — that pins it; **unpin all** returns to auto-layout |
-| deselect / clear path | `escape` |
+| | desktop | touch |
+| --- | --- | --- |
+| add a node | `+ node` | `☰` → `+ node` |
+| link two nodes | drag the `◦` handle onto the target (defaults to `soft`) | same, drag the handle |
+| change an edge type | the dropdown in **needs** / **unlocks** | same |
+| tick a node | double-click, or `space` when selected | select it → **mark done** |
+| trace a path | select → **show path**, or `f` | select → **show path** |
+| pan | drag the canvas | one-finger drag |
+| zoom | scroll | two-finger pinch |
+| reposition | drag it — that pins it; **unpin all** restores auto-layout | same |
+| deselect / clear path | `escape` | `×` on the sheet |
 
 Layout is automatic (layered, longest-path, barycenter-ordered). Hand-placing a
 DAG feels good for ten minutes and then you dread editing it.
+
+## On a phone
+
+Below 900px the sidebar collapses into a `☰` drawer, node details become a
+bottom sheet, and `⤢` refits the graph when you get lost. Input goes through
+pointer events rather than mouse events, so one-finger pan, two-finger
+pinch-zoom, drag-to-pin and drag-to-link all work under a finger.
+
+Taps carry a 6px slop radius before they count as a drag — without it every tap
+on a node would pin it out of the auto-layout, because a finger never holds
+still.
 
 ## The file
 

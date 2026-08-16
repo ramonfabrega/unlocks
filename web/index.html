@@ -7,10 +7,19 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <!-- Mobile chrome: hidden entirely above 900px, where the sidebar is always on. -->
+    <header id="topbar">
+      <button id="menu" type="button" aria-label="Open panel">☰</button>
+      <h1>unlocks</h1>
+      <span class="save save-state">saved</span>
+      <button id="fit" type="button" aria-label="Fit graph to screen">⤢</button>
+    </header>
+    <div id="scrim"></div>
+
     <aside id="left" class="panel">
       <header class="brand">
         <h1>unlocks</h1>
-        <span id="save-state" class="save">saved</span>
+        <span class="save save-state">saved</span>
       </header>
 
       <input id="search" type="search" placeholder="Search nodes…" autocomplete="off" />

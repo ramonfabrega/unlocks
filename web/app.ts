@@ -34,8 +34,19 @@ const gViewport = $<SVGGElement>("#viewport");
 const gNodes = $<SVGGElement>("#nodes");
 const gEdges = $<SVGGElement>("#edges");
 const dragEdgePath = $<SVGPathElement>("#drag-edge");
-const saveState = $("#save-state");
 const rightPanel = $("#right");
+
+/** Two indicators once the mobile topbar exists — keep them in lockstep. */
+const saveStates = [...document.querySelectorAll<HTMLElement>(".save-state")];
+function setStatus(text: string, cls = ""): void {
+  for (const el of saveStates) {
+    el.textContent = text;
+    el.className = `save save-state ${cls}`.trim();
+  }
+}
+
+const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
+const closeDrawer = () => document.body.classList.remove("drawer-open");
 
 // ---------------------------------------------------------------------- io
 
@@ -50,8 +61,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let inFlight = false;
 
 function save(): void {
-  saveState.textContent = "saving…";
-  saveState.className = "save dirty";
+  setStatus("saving…", "dirty");
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     if (inFlight) {
@@ -67,15 +77,12 @@ function save(): void {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: res.statusText }));
-        saveState.textContent = `rejected: ${body.error ?? res.status}`;
-        saveState.className = "save error";
+        setStatus(`rejected: ${body.error ?? res.status}`, "error");
         return;
       }
-      saveState.textContent = "saved";
-      saveState.className = "save";
+      setStatus("saved");
     } catch (err) {
-      saveState.textContent = "offline — server down?";
-      saveState.className = "save error";
+      setStatus("offline — server down?", "error");
       console.error(err);
     } finally {
       inFlight = false;
@@ -293,7 +300,8 @@ function renderEditor(
 
   rightPanel.innerHTML =
     `<header class="brand"><h1>${esc(n.label)}</h1>` +
-    `<span class="save"><span class="dot ${st}"></span> ${st}</span></header>` +
+    `<span class="save"><span class="dot ${st}"></span> ${st}</span>` +
+    `<button id="e-close" class="sheet-close" type="button" aria-label="Close">×</button></header>` +
     (n.verify
       ? `<div class="warn">Unverified game fact — I seeded this from memory. ` +
         `Check it, then clear the flag.${n.note ? `<br><br>${esc(n.note)}` : ""}</div>`
@@ -358,6 +366,10 @@ function wireEditor(n: GraphNode): void {
   const click = (sel: string, fn: () => void) =>
     rightPanel.querySelector(sel)?.addEventListener("click", fn);
 
+  click("#e-close", () => {
+    selected = null;
+    render();
+  });
   click("#e-done", () => {
     n.done = !n.done;
     save();
@@ -437,8 +449,11 @@ function fitToContent(): void {
   // Deliberately NOT fit-to-everything: a 10-layer DAG squeezed into one screen
   // is unreadable. Start at a zoom where labels are legible, pinned to the roots
   // on the left, and let the user pan rightward through the progression.
-  const fit = Math.min((r.height - pad * 2) / (maxY - minY), 1);
-  view.k = Math.min(1, Math.max(0.55, fit));
+  // Cap tighter on mobile so the first paint shows a chunk of the graph rather
+  // than three nodes — pinching in is easier than hunting for context.
+  const fit = (r.height - pad * 2) / (maxY - minY);
+  const [floor, cap] = isMobile() ? [0.3, 0.6] : [0.55, 1];
+  view.k = Math.min(cap, Math.max(floor, fit));
   view.x = pad - minX * view.k;
   view.y = (r.height - (maxY - minY) * view.k) / 2 - minY * view.k;
 }
@@ -447,8 +462,15 @@ function centerOn(id: string): void {
   const p = layout(graph, { groupLanes }).get(id);
   if (!p) return;
   const r = svg.getBoundingClientRect();
+  // On mobile the detail sheet covers the bottom of the canvas, so centring in
+  // the full rect parks the node underneath it. Centre in what's visible.
+  const sheet =
+    isMobile() && !rightPanel.classList.contains("hidden")
+      ? rightPanel.getBoundingClientRect().height
+      : 0;
+  const visibleH = Math.max(140, r.height - sheet);
   view.x = r.width / 2 - (p.x + p.w / 2) * view.k;
-  view.y = r.height / 2 - (p.y + p.h / 2) * view.k;
+  view.y = visibleH / 2 - (p.y + p.h / 2) * view.k;
   applyView();
 }
 
@@ -456,14 +478,45 @@ function centerOn(id: string): void {
 
 type Drag =
   | { mode: "pan"; sx: number; sy: number; ox: number; oy: number }
-  | { mode: "node"; id: string; dx: number; dy: number; moved: boolean }
+  | { mode: "node"; id: string; dx: number; dy: number; moved: boolean; sx: number; sy: number }
   | { mode: "link"; id: string; x1: number; y1: number };
 
 let drag: Drag | null = null;
+/** Live pointers keyed by pointerId — two of them is a pinch, not a drag. */
+const pointers = new Map<number, { x: number; y: number }>();
+let pinch: { dist: number; mx: number; my: number } | null = null;
+/**
+ * A finger never holds perfectly still. Without a slop radius every tap on a
+ * node would register as a drag and pin it out of the auto-layout.
+ */
+const DRAG_SLOP = 6;
 
-svg.addEventListener("mousedown", (ev) => {
+const clampK = (k: number) => Math.min(2.5, Math.max(0.12, k));
+
+function beginPinch(): void {
+  const [a, b] = [...pointers.values()];
+  if (!a || !b) return;
+  drag = null;
+  svg.classList.remove("panning");
+  dragEdgePath.classList.remove("on");
+  pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+}
+
+svg.addEventListener("pointerdown", (ev) => {
+  pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (pointers.size === 2) {
+    beginPinch();
+    return;
+  }
+  if (pointers.size > 2) return;
+
   const target = ev.target as Element;
   const nodeEl = target.closest<SVGGElement>(".node");
+  // Throws NotFoundError if the pointer is already gone; never worth failing the
+  // whole gesture over.
+  try {
+    svg.setPointerCapture(ev.pointerId);
+  } catch {}
 
   if (nodeEl && target.classList.contains("handle")) {
     const id = nodeEl.dataset.id as string;
@@ -480,7 +533,15 @@ svg.addEventListener("mousedown", (ev) => {
     const p = layout(graph, { groupLanes }).get(id);
     const w = toWorld(ev.clientX, ev.clientY);
     if (!p) return;
-    drag = { mode: "node", id, dx: w.x - p.x, dy: w.y - p.y, moved: false };
+    drag = {
+      mode: "node",
+      id,
+      dx: w.x - p.x,
+      dy: w.y - p.y,
+      moved: false,
+      sx: ev.clientX,
+      sy: ev.clientY,
+    };
     ev.preventDefault();
     return;
   }
@@ -489,7 +550,30 @@ svg.addEventListener("mousedown", (ev) => {
   svg.classList.add("panning");
 });
 
-window.addEventListener("mousemove", (ev) => {
+svg.addEventListener("pointermove", (ev) => {
+  if (!pointers.has(ev.pointerId)) return;
+  pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+
+  if (pinch && pointers.size >= 2) {
+    const [a, b] = [...pointers.values()];
+    if (!a || !b) return;
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    const r = svg.getBoundingClientRect();
+    const px = pinch.mx - r.left;
+    const py = pinch.my - r.top;
+    const next = clampK(view.k * (dist / (pinch.dist || dist)));
+    // Zoom about the previous midpoint, then follow the midpoint as it travels,
+    // so a two-finger drag pans and pinches in one gesture.
+    view.x = px - ((px - view.x) / view.k) * next + (mx - pinch.mx);
+    view.y = py - ((py - view.y) / view.k) * next + (my - pinch.my);
+    view.k = next;
+    pinch = { dist, mx, my };
+    applyView();
+    return;
+  }
+
   if (!drag) return;
   if (drag.mode === "pan") {
     view.x = drag.ox + (ev.clientX - drag.sx);
@@ -506,6 +590,7 @@ window.addEventListener("mousemove", (ev) => {
     );
     return;
   }
+  if (!drag.moved && Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) < DRAG_SLOP) return;
   // Dragging a node pins it; the rest of the graph keeps auto-arranging.
   const n = nodeById(drag.id);
   if (!n) return;
@@ -514,7 +599,18 @@ window.addEventListener("mousemove", (ev) => {
   render();
 });
 
-window.addEventListener("mouseup", (ev) => {
+function endPointer(ev: PointerEvent): void {
+  pointers.delete(ev.pointerId);
+  try {
+    if (svg.hasPointerCapture(ev.pointerId)) svg.releasePointerCapture(ev.pointerId);
+  } catch {}
+
+  if (pinch) {
+    // Swallow input until every finger is up, so lifting one of two fingers
+    // doesn't snap into a pan from wherever the survivor happens to be.
+    if (pointers.size === 0) pinch = null;
+    return;
+  }
   if (!drag) return;
   const d = drag;
   drag = null;
@@ -524,13 +620,15 @@ window.addEventListener("mouseup", (ev) => {
   if (d.mode === "pan") return;
 
   if (d.mode === "link") {
-    const targetEl = (ev.target as Element).closest<SVGGElement>(".node");
+    // Pointer capture means ev.target is the <svg>, not what's under the finger.
+    const targetEl = document
+      .elementFromPoint(ev.clientX, ev.clientY)
+      ?.closest<SVGGElement>(".node");
     const to = targetEl?.dataset.id;
     if (!to || to === d.id) return;
     if (graph.edges.some((e) => e.from === d.id && e.to === to)) return;
     if (wouldCycle(d.id, to)) {
-      saveState.textContent = `${labelOf(to)} already leads to ${labelOf(d.id)}`;
-      saveState.className = "save error";
+      setStatus(`${labelOf(to)} already leads to ${labelOf(d.id)}`, "error");
       return;
     }
     // Default to "soft" — most of what you track is preference, not a game lock.
@@ -547,7 +645,10 @@ window.addEventListener("mouseup", (ev) => {
   } else {
     save();
   }
-});
+}
+
+svg.addEventListener("pointerup", endPointer);
+svg.addEventListener("pointercancel", endPointer);
 
 svg.addEventListener("dblclick", (ev) => {
   const nodeEl = (ev.target as Element).closest<SVGGElement>(".node");
@@ -587,10 +688,21 @@ for (const list of ["#frontier", "#soon"]) {
     const li = (ev.target as Element).closest<HTMLElement>("li[data-id]");
     if (!li?.dataset.id) return;
     selected = li.dataset.id;
+    // On a phone the drawer covers the canvas, so picking something is also a
+    // request to go look at it.
+    closeDrawer();
     render();
     centerOn(selected);
   });
 }
+
+$("#menu").addEventListener("click", () => document.body.classList.toggle("drawer-open"));
+$("#scrim").addEventListener("click", closeDrawer);
+$("#fit").addEventListener("click", () => {
+  closeDrawer();
+  fitToContent();
+  applyView();
+});
 
 $("#lanes").addEventListener("click", (ev) => {
   const lane = (ev.target as HTMLElement).dataset.lane as Lane | undefined;
