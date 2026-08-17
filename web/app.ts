@@ -2,6 +2,7 @@ import {
   adjacency,
   ancestors,
   descendants,
+  edgeKey,
   fitLabel,
   layout,
   leverage,
@@ -144,11 +145,11 @@ function render(): void {
   const status = statuses(graph, adj);
   const lev = leverage(graph, adj);
   const vg = visibleGraph();
-  const placed = layout(vg, { groupLanes });
+  const { placed, bends } = layout(vg, { groupLanes });
 
   const litNodes = focus ? new Set([focus, ...ancestors(focus, adj)]) : null;
 
-  renderEdges(vg, placed, litNodes);
+  renderEdges(vg, placed, bends, litNodes);
   renderNodes(vg, placed, status, litNodes);
   renderFrontier(status, lev, adj);
   renderLaneChips();
@@ -157,19 +158,44 @@ function render(): void {
   applyView();
 }
 
-function renderEdges(vg: Graph, placed: Map<string, Placed>, lit: Set<string> | null): void {
+type Pt = { x: number; y: number };
+
+/**
+ * Smooth cubic through the routed channel points. Straight runs are emitted as
+ * lines — a bezier between two points at the same height still renders a faint
+ * wobble, and a long routed edge is mostly straight runs.
+ */
+function routePath(points: Pt[]): string {
+  const first = points[0];
+  if (!first) return "";
+  let d = `M${first.x},${first.y}`;
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i - 1] as Pt;
+    const p1 = points[i] as Pt;
+    if (Math.abs(p1.y - p0.y) < 1) {
+      d += ` L${p1.x},${p1.y}`;
+      continue;
+    }
+    const dx = Math.max(24, (p1.x - p0.x) * 0.5);
+    d += ` C${p0.x + dx},${p0.y} ${p1.x - dx},${p1.y} ${p1.x},${p1.y}`;
+  }
+  return d;
+}
+
+function renderEdges(
+  vg: Graph,
+  placed: Map<string, Placed>,
+  bends: Map<string, Pt[]>,
+  lit: Set<string> | null,
+): void {
   const parts: string[] = [];
   for (const e of vg.edges) {
     const a = placed.get(e.from);
     const b = placed.get(e.to);
     if (!a || !b) continue;
 
-    const x1 = a.x + a.w;
-    const y1 = a.y + a.h / 2;
-    const x2 = b.x;
-    const y2 = b.y + b.h / 2;
-    const dx = Math.max(38, Math.abs(x2 - x1) * 0.45);
-    const d = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
+    const via = bends.get(edgeKey(e.from, e.to)) ?? [];
+    const d = routePath([{ x: a.x + a.w, y: a.y + a.h / 2 }, ...via, { x: b.x, y: b.y + b.h / 2 }]);
 
     const onPath = lit ? lit.has(e.from) && lit.has(e.to) : false;
     const cls = lit ? (onPath ? `edge ${e.type} lit` : `edge ${e.type} dim`) : `edge ${e.type}`;
@@ -211,6 +237,11 @@ function renderNodes(
         `<text class="label" x="${p.x + 14}" y="${cy}">${esc(fitLabel(n.label, p.w, n.kind))}</text>` +
         (tag ? `<text class="kind" x="${p.x + p.w - 10}" y="${cy}">${tag}</text>` : "") +
         (n.verify ? `<text class="flag" x="${p.x + p.w - 8}" y="${p.y + 8}">?</text>` : "") +
+        // A pinned node sits outside the auto-layout, so say so on the node
+        // itself — otherwise "why is this one in a weird place" has no answer.
+        (p.pinned
+          ? `<circle class="pinmark" cx="${p.x + 8}" cy="${p.y + 7}" r="2.5"></circle>`
+          : "") +
         // Invisible hit target first, so grabbing the link handle doesn't
         // demand 5px precision (a miss pans the canvas instead).
         `<circle class="handle hit" cx="${p.x + p.w}" cy="${cy}" r="13"></circle>` +
@@ -454,7 +485,7 @@ function toWorld(clientX: number, clientY: number): { x: number; y: number } {
 }
 
 function fitToContent(): void {
-  const placed = currentLayout();
+  const { placed } = currentLayout();
   if (!placed.size) return;
   let minX = Infinity;
   let minY = Infinity;
@@ -481,7 +512,7 @@ function fitToContent(): void {
 }
 
 function centerOn(id: string): void {
-  const p = currentLayout().get(id);
+  const p = currentLayout().placed.get(id);
   if (!p) return;
   const r = svg.getBoundingClientRect();
   // On mobile the detail sheet covers the bottom of the canvas, so centring in
@@ -500,7 +531,19 @@ function centerOn(id: string): void {
 
 type Drag =
   | { mode: "pan"; sx: number; sy: number; ox: number; oy: number }
-  | { mode: "node"; id: string; dx: number; dy: number; moved: boolean; sx: number; sy: number }
+  | {
+      mode: "node";
+      id: string;
+      dx: number;
+      dy: number;
+      moved: boolean;
+      sx: number;
+      sy: number;
+      /** Touch drags pan the canvas instead of pinning — see below. */
+      pins: boolean;
+      ox: number;
+      oy: number;
+    }
   | { mode: "link"; id: string; x1: number; y1: number };
 
 let drag: Drag | null = null;
@@ -509,9 +552,9 @@ const pointers = new Map<number, { x: number; y: number }>();
 let pinch: { dist: number; mx: number; my: number } | null = null;
 /**
  * A finger never holds perfectly still. Without a slop radius every tap on a
- * node would register as a drag and pin it out of the auto-layout.
+ * node would register as a drag. Touch needs a bigger one than a mouse.
  */
-const DRAG_SLOP = 6;
+const slopFor = (type: string) => (type === "mouse" ? 6 : 14);
 
 const clampK = (k: number) => Math.min(2.5, Math.max(0.12, k));
 
@@ -542,7 +585,7 @@ svg.addEventListener("pointerdown", (ev) => {
 
   if (nodeEl && target.classList.contains("handle")) {
     const id = nodeEl.dataset.id as string;
-    const p = currentLayout().get(id);
+    const p = currentLayout().placed.get(id);
     if (!p) return;
     drag = { mode: "link", id, x1: p.x + p.w, y1: p.y + p.h / 2 };
     dragEdgePath.classList.add("on");
@@ -552,7 +595,7 @@ svg.addEventListener("pointerdown", (ev) => {
 
   if (nodeEl) {
     const id = nodeEl.dataset.id as string;
-    const p = currentLayout().get(id);
+    const p = currentLayout().placed.get(id);
     const w = toWorld(ev.clientX, ev.clientY);
     if (!p) return;
     drag = {
@@ -563,6 +606,12 @@ svg.addEventListener("pointerdown", (ev) => {
       moved: false,
       sx: ev.clientX,
       sy: ev.clientY,
+      // On touch there is no hover and gestures are coarse, so dragging a node
+      // pans instead of pinning it. Accidental pins were the single worst
+      // failure mode on the phone — four of them silently wrecked the layout.
+      pins: ev.pointerType === "mouse",
+      ox: view.x,
+      oy: view.y,
     };
     ev.preventDefault();
     return;
@@ -612,11 +661,22 @@ svg.addEventListener("pointermove", (ev) => {
     );
     return;
   }
-  if (!drag.moved && Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) < DRAG_SLOP) return;
-  // Dragging a node pins it; the rest of the graph keeps auto-arranging.
+  const slop = slopFor(ev.pointerType);
+  if (!drag.moved && Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) < slop) return;
+  drag.moved = true;
+
+  if (!drag.pins) {
+    // Touch: drag the canvas under the finger rather than tearing the node out
+    // of the layout.
+    view.x = drag.ox + (ev.clientX - drag.sx);
+    view.y = drag.oy + (ev.clientY - drag.sy);
+    applyView();
+    return;
+  }
+
+  // Mouse: dragging pins the node; the rest keeps auto-arranging around it.
   const n = nodeById(drag.id);
   if (!n) return;
-  drag.moved = true;
   n.pin = { x: Math.round(w.x - drag.dx), y: Math.round(w.y - drag.dy) };
   render();
 });
@@ -664,8 +724,8 @@ function endPointer(ev: PointerEvent): void {
   if (!d.moved) {
     selected = selected === d.id ? null : d.id;
     render();
-  } else {
-    save();
+  } else if (d.pins) {
+    save(); // a touch drag only moved the camera — nothing to persist
   }
 }
 

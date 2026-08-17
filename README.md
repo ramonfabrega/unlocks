@@ -88,8 +88,29 @@ layout around what's left. Status and leverage keep being computed from the
 whole graph, so hiding a finished prerequisite never makes its dependents look
 locked again — Zulrah stays `ready` even with the crystal grind hidden.
 
-Layout is automatic (layered, longest-path, barycenter-ordered). Hand-placing a
-DAG feels good for ten minutes and then you dread editing it.
+## Layout
+
+Automatic, in four passes: longest-path layering picks the column, dummy chains
+give multi-layer edges their own channels, barycenter sweeps order each column,
+and median alignment plus chain anchoring set the y coordinates. That third step
+is the one that matters visually — without it an edge like `DT2 → Duke` slices
+diagonally through all seven columns in between.
+
+On the seed graph three of the four routed edges come out exactly straight. The
+fourth can't: `DT2 → Leviathan` shares all seven columns with `DT2 → Duke`, and
+two chains leaving one node for different targets have to diverge somewhere.
+
+**Positions are not remembered** — the picture rebuilds itself from the graph
+every render. The one exception is pinning:
+
+- **mouse**: dragging a node pins it there, and that pin *is* saved. A pinned
+  node shows a small dot in its top-left corner and gets an **unpin** button in
+  its panel. **unpin all** clears every one.
+- **touch**: dragging a node pans the canvas instead. Accidental pins were the
+  worst failure mode on the phone — four of them silently wrecked the layout
+  before the cause was obvious.
+
+If a node is somewhere strange, look for the pin dot first.
 
 ## On a phone
 

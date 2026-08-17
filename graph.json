@@ -186,10 +186,7 @@
       "note": "",
       "wiki": "https://oldschool.runescape.wiki/w/Tombs_of_Amascut",
       "verify": false,
-      "pin": {
-        "x": 1352,
-        "y": 246
-      }
+      "pin": null
     },
     {
       "id": "lightbearer",
@@ -266,10 +263,7 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": {
-        "x": 240,
-        "y": 293
-      }
+      "pin": null
     },
     {
       "id": "slayer-93",
@@ -280,10 +274,7 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": {
-        "x": 245,
-        "y": 237
-      }
+      "pin": null
     },
     {
       "id": "slayer-95",
@@ -327,10 +318,7 @@
       "note": "",
       "wiki": "https://oldschool.runescape.wiki/w/Araxxor",
       "verify": false,
-      "pin": {
-        "x": 537,
-        "y": 286
-      }
+      "pin": null
     },
     {
       "id": "rancour",

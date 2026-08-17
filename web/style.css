@@ -433,6 +433,10 @@ button.primary {
   pointer-events: none;
 }
 
+.node .pinmark {
+  fill: var(--muted);
+}
+
 .node .handle {
   cursor: crosshair;
 }

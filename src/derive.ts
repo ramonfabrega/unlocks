@@ -176,16 +176,37 @@ export function fitLabel(label: string, width: number, kind: NodeKind): string {
   return label.length <= max ? label : `${label.slice(0, max - 1)}…`;
 }
 
+export interface LayoutResult {
+  placed: Map<string, Placed>;
+  /** Route points for edges crossing more than one layer, keyed by edgeKey. */
+  bends: Map<string, Array<{ x: number; y: number }>>;
+}
+
+/** Edges are keyed with a NUL so ids containing "-" or ">" can't collide. */
+export const edgeKey = (from: string, to: string): string => `${from}\u0000${to}`;
+
+/** A routed edge reserves a thin channel in every column it passes through. */
+const DUMMY_H = 6;
+const DUMMY_GAP = 12;
+
 /**
- * Layered (Sugiyama-lite) left-to-right layout: longest-path layering, then a
- * few barycenter sweeps to stop edges crossing. Deliberately automatic — hand
- * placing a DAG feels good for ten minutes and then you dread editing it. Drag
- * a node and it pins; everything else keeps arranging itself around the pin.
+ * Layered (Sugiyama) left-to-right layout, in four passes:
+ *
+ *  1. longest-path layering                → which column each node lives in
+ *  2. dummy chains for multi-layer edges   → long edges get their own channels
+ *  3. barycenter sweeps                    → ordering within a column
+ *  4. median alignment                     → y coordinates, edges straightened
+ *
+ * Step 2 is what stops an edge like "DT2 → Duke" slicing diagonally through
+ * every column in between, which is most of what makes a layered graph
+ * unreadable. Deliberately automatic: hand-placing a DAG feels good for ten
+ * minutes and then you dread editing it. Drag a node and it pins; everything
+ * else keeps arranging itself around the pin.
  */
 export function layout(
   g: Graph,
   opts: { groupLanes: boolean } = { groupLanes: false },
-): Map<string, Placed> {
+): LayoutResult {
   const adj = adjacency(g);
   const order = topoOrder(g, adj);
 
@@ -199,43 +220,90 @@ export function layout(
   }
 
   const columns: string[][] = [];
-  for (const n of g.nodes) {
-    const l = layer.get(n.id) ?? 0;
+  const addSlot = (l: number, id: string) => {
     const col = columns[l] ?? [];
-    col.push(n.id);
+    col.push(id);
     columns[l] = col;
+  };
+  for (const n of g.nodes) addSlot(layer.get(n.id) ?? 0, n.id);
+
+  // --- 2. expand long edges into per-layer dummy slots -----------------------
+  const dummies = new Set<string>();
+  const dummyLayer = new Map<string, number>();
+  const dummyLane = new Map<string, string>();
+  /** Keyed by edgeKey; carries its endpoints so nothing has to re-parse the key. */
+  const routeOf = new Map<string, { from: string; to: string; route: string[] }>();
+  const preds = new Map<string, string[]>();
+  const succs = new Map<string, string[]>();
+  const link = (a: string, b: string) => {
+    const s = succs.get(a);
+    if (s) s.push(b);
+    else succs.set(a, [b]);
+    const p = preds.get(b);
+    if (p) p.push(a);
+    else preds.set(b, [a]);
+  };
+
+  for (const e of g.edges) {
+    const l1 = layer.get(e.from);
+    const l2 = layer.get(e.to);
+    if (l1 === undefined || l2 === undefined) continue;
+    if (l2 - l1 <= 1) {
+      link(e.from, e.to);
+      continue;
+    }
+    const key = edgeKey(e.from, e.to);
+    const route: string[] = [];
+    let prev = e.from;
+    for (let l = l1 + 1; l < l2; l++) {
+      const id = `~${key}~${l}`;
+      dummies.add(id);
+      dummyLayer.set(id, l);
+      dummyLane.set(id, adj.byId.get(e.from)?.lane ?? "");
+      addSlot(l, id);
+      route.push(id);
+      link(prev, id);
+      prev = id;
+    }
+    link(prev, e.to);
+    routeOf.set(key, { from: e.from, to: e.to, route });
   }
 
-  // Seed each column by lane then label so the first paint is stable, then let
-  // barycenter sweeps pull connected nodes level with each other.
+  const isDummy = (id: string) => dummies.has(id);
+  const heightOf = (id: string) => (isDummy(id) ? DUMMY_H : NODE_H);
+  const gapOf = (a: string, b: string) => (isDummy(a) || isDummy(b) ? DUMMY_GAP : ROW_GAP);
+
+  // --- 3. ordering within each column ---------------------------------------
   const laneRank = (id: string) => {
-    const lane = adj.byId.get(id)?.lane ?? "";
+    const lane = dummyLane.get(id) ?? adj.byId.get(id)?.lane ?? "";
     const i = LANE_ORDER.indexOf(lane);
     return i === -1 ? LANE_ORDER.length : i;
   };
   for (const col of columns) {
-    col.sort((a, b) => laneRank(a) - laneRank(b) || a.localeCompare(b));
+    col?.sort((a, b) => laneRank(a) - laneRank(b) || a.localeCompare(b));
   }
 
   const pos = new Map<string, number>();
   const reindex = () => {
     for (const col of columns) {
+      if (!col) continue;
       for (const [i, id] of col.entries()) pos.set(id, i);
     }
   };
   reindex();
 
-  const barycenter = (id: string, side: "preds" | "succs"): number | null => {
-    const edges = adj[side].get(id) ?? [];
-    const neighbours = edges.map((e) => pos.get(side === "preds" ? e.from : e.to));
-    const known = neighbours.filter((v): v is number => v !== undefined);
+  const barycenter = (id: string, side: Map<string, string[]>): number | null => {
+    const known = (side.get(id) ?? [])
+      .map((n) => pos.get(n))
+      .filter((v): v is number => v !== undefined);
     if (!known.length) return null;
     return known.reduce((a, b) => a + b, 0) / known.length;
   };
 
   for (let sweep = 0; sweep < 12; sweep++) {
-    const side = sweep % 2 === 0 ? "preds" : "succs";
-    const range = side === "preds" ? columns.keys() : [...columns.keys()].reverse();
+    const forward = sweep % 2 === 0;
+    const side = forward ? preds : succs;
+    const range = forward ? [...columns.keys()] : [...columns.keys()].reverse();
     for (const li of range) {
       const col = columns[li];
       if (!col) continue;
@@ -255,13 +323,15 @@ export function layout(
     }
   }
 
-  // Columns are as wide as their widest box, so long labels never overlap.
+  // Columns are as wide as their widest real box; dummies are just channels.
   const widths = columns.map((col) =>
     Math.max(
-      ...(col ?? []).map((id) => {
-        const n = adj.byId.get(id);
-        return nodeWidth(n?.label ?? id, n?.kind ?? "activity");
-      }),
+      ...(col ?? [])
+        .filter((id) => !isDummy(id))
+        .map((id) => {
+          const n = adj.byId.get(id);
+          return nodeWidth(n?.label ?? id, n?.kind ?? "activity");
+        }),
       MIN_W,
     ),
   );
@@ -269,28 +339,151 @@ export function layout(
   let cursor = 0;
   for (let i = 0; i < columns.length; i++) {
     xs[i] = cursor;
-    cursor += (widths[i] ?? 140) + COL_GAP;
+    cursor += (widths[i] ?? MIN_W) + COL_GAP;
   }
 
-  const tallest = Math.max(...columns.map((c) => c?.length ?? 0), 1);
+  // --- 4. y coordinates ------------------------------------------------------
+  const y = new Map<string, number>();
+  for (const col of columns) {
+    if (!col) continue;
+    let top = 0;
+    let prev: string | null = null;
+    for (const id of col) {
+      if (prev) top += gapOf(prev, id);
+      y.set(id, top);
+      top += heightOf(id);
+      prev = id;
+    }
+  }
+
+  const centre = (id: string) => (y.get(id) ?? 0) + heightOf(id) / 2;
+
+  // Pull every slot toward the average centre of its neighbours, then push the
+  // column apart just enough to stop overlaps. This is what makes a routed edge
+  // come out as a straight line rather than a staircase.
+  for (let pass = 0; pass < 10; pass++) {
+    const forward = pass % 2 === 0;
+    const side = forward ? preds : succs;
+    const range = forward ? [...columns.keys()] : [...columns.keys()].reverse();
+    for (const li of range) {
+      const col = columns[li];
+      if (!col?.length) continue;
+
+      const want = col.map((id) => {
+        const nb = side.get(id) ?? [];
+        return nb.length ? nb.reduce((a, n) => a + centre(n), 0) / nb.length : centre(id);
+      });
+
+      const tops: number[] = [];
+      for (let i = 0; i < col.length; i++) {
+        const id = col[i] as string;
+        let top = (want[i] as number) - heightOf(id) / 2;
+        if (i > 0) {
+          const p = col[i - 1] as string;
+          top = Math.max(top, (tops[i - 1] as number) + heightOf(p) + gapOf(p, id));
+        }
+        tops.push(top);
+      }
+
+      // Re-centre, or separation pressure marches the whole column downwards.
+      let got = 0;
+      for (let i = 0; i < col.length; i++) {
+        got += (tops[i] as number) + heightOf(col[i] as string) / 2;
+      }
+      const shift = want.reduce((a, b) => a + b, 0) / want.length - got / col.length;
+      for (let i = 0; i < col.length; i++) y.set(col[i] as string, (tops[i] as number) + shift);
+    }
+  }
+
+  /**
+   * Pin one slot at `top` and shove the rest of its column aside to make room,
+   * keeping the established order. Overlap-free by construction: a neighbour is
+   * only ever pushed further away from the anchor, never toward it.
+   */
+  const anchor = (col: string[], at: number, top: number): void => {
+    const anchored = col[at];
+    if (!anchored) return;
+    y.set(anchored, top);
+    for (let i = at - 1; i >= 0; i--) {
+      const cur = col[i] as string;
+      const below = col[i + 1] as string;
+      const maxTop = (y.get(below) ?? 0) - gapOf(cur, below) - heightOf(cur);
+      if ((y.get(cur) ?? 0) > maxTop) y.set(cur, maxTop);
+    }
+    for (let i = at + 1; i < col.length; i++) {
+      const cur = col[i] as string;
+      const above = col[i - 1] as string;
+      const minTop = (y.get(above) ?? 0) + heightOf(above) + gapOf(above, cur);
+      if ((y.get(cur) ?? 0) < minTop) y.set(cur, minTop);
+    }
+  };
+
+  // Median alignment gets a chain close, but real nodes sharing its columns
+  // still nudge it into a slope. Anchor each routed chain onto the straight line
+  // between its endpoints and push the columns out of its way — clamping it to
+  // existing slack instead leaves bends stranded wherever a column is crowded.
+  for (let pass = 0; pass < 4; pass++) {
+    for (const { from, to, route } of routeOf.values()) {
+      const fromNode = adj.byId.get(from);
+      // Interpolate against the exact geometry the renderer will use: the line
+      // runs from the source's right edge to the target's left edge, and each
+      // bend sits at the horizontal centre of its column.
+      const x0 =
+        (xs[layer.get(from) ?? 0] ?? 0) +
+        nodeWidth(fromNode?.label ?? from, fromNode?.kind ?? "activity");
+      const x1 = xs[layer.get(to) ?? 0] ?? 0;
+      const spanX = x1 - x0 || 1;
+      const fy = centre(from);
+      const ty = centre(to);
+
+      for (const d of route) {
+        const l = dummyLayer.get(d) ?? 0;
+        const col = columns[l];
+        if (!col) continue;
+        const t = ((xs[l] ?? 0) + (widths[l] ?? MIN_W) / 2 - x0) / spanX;
+        anchor(col, pos.get(d) ?? 0, fy + (ty - fy) * t - DUMMY_H / 2);
+      }
+    }
+  }
+
+  let minY = Number.POSITIVE_INFINITY;
+  for (const v of y.values()) minY = Math.min(minY, v);
+  if (Number.isFinite(minY)) for (const [k, v] of y) y.set(k, v - minY);
+
   const placed = new Map<string, Placed>();
   columns.forEach((col, li) => {
     if (!col) return;
-    const span = col.length * (NODE_H + ROW_GAP);
-    const top = (tallest * (NODE_H + ROW_GAP) - span) / 2;
-    col.forEach((id, i) => {
+    for (const id of col) {
+      if (isDummy(id)) continue;
       const node = adj.byId.get(id);
-      const w = nodeWidth(node?.label ?? id, node?.kind ?? "activity");
       placed.set(id, {
         id,
         x: node?.pin?.x ?? xs[li] ?? 0,
-        y: node?.pin?.y ?? top + i * (NODE_H + ROW_GAP),
-        w,
+        y: node?.pin?.y ?? y.get(id) ?? 0,
+        w: nodeWidth(node?.label ?? id, node?.kind ?? "activity"),
         h: NODE_H,
         layer: li,
         pinned: !!node?.pin,
       });
-    });
+    }
   });
-  return placed;
+
+  const bends = new Map<string, Array<{ x: number; y: number }>>();
+  for (const [key, { from, to, route }] of routeOf) {
+    // A pinned endpoint has left the layer grid, so its channel no longer lines
+    // up — route those straight instead of through stale bends.
+    if (adj.byId.get(from)?.pin || adj.byId.get(to)?.pin) continue;
+    bends.set(
+      key,
+      route.map((id) => {
+        const l = dummyLayer.get(id) ?? 0;
+        return {
+          x: (xs[l] ?? 0) + (widths[l] ?? MIN_W) / 2,
+          y: (y.get(id) ?? 0) + DUMMY_H / 2,
+        };
+      }),
+    );
+  }
+
+  return { placed, bends };
 }
