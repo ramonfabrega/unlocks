@@ -130,7 +130,7 @@
       "done": false,
       "note": "",
       "wiki": "https://oldschool.runescape.wiki/w/Oathplate_armour",
-      "verify": true,
+      "verify": false,
       "pin": null
     },
     {
@@ -239,11 +239,11 @@
       "id": "salvaging",
       "label": "Salvaging (?)",
       "kind": "activity",
-      "lane": "slayer",
+      "lane": "skilling",
       "done": false,
-      "note": "You had this nested under herb sack and I couldn't place it — rename or delete. What did you mean?",
+      "note": "",
       "wiki": "",
-      "verify": true,
+      "verify": false,
       "pin": null
     },
     {
@@ -426,9 +426,9 @@
       "kind": "activity",
       "lane": "skilling",
       "done": false,
-      "note": "Sceptre teleport makes the Pollnivneach trip trivial.",
+      "note": "",
       "wiki": "https://oldschool.runescape.wiki/w/Wealthy_citizen",
-      "verify": true,
+      "verify": false,
       "pin": null
     },
     {
@@ -716,13 +716,6 @@
       "to": "sceptre",
       "type": "grants",
       "note": "",
-      "verify": false
-    },
-    {
-      "from": "sceptre",
-      "to": "wealthy-citizens",
-      "type": "soft",
-      "note": "Transcribed from your nesting.",
       "verify": false
     },
     {
