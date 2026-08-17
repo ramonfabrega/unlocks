@@ -237,7 +237,7 @@
     },
     {
       "id": "salvaging",
-      "label": "Salvaging (?)",
+      "label": "Salvaging",
       "kind": "activity",
       "lane": "skilling",
       "done": false,
