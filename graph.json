@@ -186,7 +186,10 @@
       "note": "",
       "wiki": "https://oldschool.runescape.wiki/w/Tombs_of_Amascut",
       "verify": false,
-      "pin": null
+      "pin": {
+        "x": 1352,
+        "y": 246
+      }
     },
     {
       "id": "lightbearer",
