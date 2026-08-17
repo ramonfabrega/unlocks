@@ -4,9 +4,16 @@ import { findCycle, Graph, validateGraph } from "./schema.ts";
 
 const real = Graph.parse(await Bun.file(new URL("../graph.json", import.meta.url)).json());
 
+/**
+ * graph.json carries live progress that changes every time the account does, so
+ * status and leverage are asserted against a cleared board. Structural checks
+ * (validity, ancestry, layering) still run against the real file.
+ */
+const fresh: Graph = { ...real, nodes: real.nodes.map((n) => ({ ...n, done: false })) };
+
 const withDone = (...ids: string[]): Graph => ({
-  ...real,
-  nodes: real.nodes.map((n) => (ids.includes(n.id) ? { ...n, done: true } : n)),
+  ...fresh,
+  nodes: fresh.nodes.map((n) => (ids.includes(n.id) ? { ...n, done: true } : n)),
 });
 
 describe("graph.json", () => {
@@ -27,31 +34,31 @@ describe("graph.json", () => {
 describe("status", () => {
   test("a soft-only prerequisite makes a node possible, never locked", () => {
     // The case that broke the outline: you can kill Muspah today, you'd just
-    // rather have bowfa first.
-    const st = statuses(real);
+    // rather have the bow first.
+    const st = statuses(fresh);
     expect(st.get("muspah")).toBe("possible");
   });
 
   test("satisfying the soft prerequisite promotes possible -> ready", () => {
-    const st = statuses(withDone("song-of-elves", "gauntlet", "cg", "bowfa"));
+    const st = statuses(withDone("song-of-elves", "cg", "full-crystal"));
     expect(st.get("muspah")).toBe("ready");
     expect(st.get("zulrah")).toBe("ready");
   });
 
   test("a hard prerequisite locks the node outright", () => {
-    expect(statuses(real).get("araxxor")).toBe("locked");
-    // 92 Slayer unlocks it, but bowfa is still a soft want — so it clears
+    expect(statuses(fresh).get("araxxor")).toBe("locked");
+    // 92 Slayer unlocks it, but full crystal is still a soft want — so it clears
     // "locked" and lands on "possible", not straight to "ready".
     expect(statuses(withDone("slayer-grind", "slayer-92")).get("araxxor")).toBe("possible");
     expect(
-      statuses(
-        withDone("slayer-grind", "slayer-92", "song-of-elves", "gauntlet", "cg", "bowfa"),
-      ).get("araxxor"),
+      statuses(withDone("slayer-grind", "slayer-92", "song-of-elves", "cg", "full-crystal")).get(
+        "araxxor",
+      ),
     ).toBe("ready");
   });
 
   test("grants blocks the item behind its source activity", () => {
-    expect(statuses(real).get("bowfa")).toBe("locked");
+    expect(statuses(fresh).get("full-crystal")).toBe("locked");
   });
 
   test("done wins over everything", () => {
@@ -61,20 +68,20 @@ describe("status", () => {
 
 describe("leverage", () => {
   test("CG outranks the bosses it feeds", () => {
-    const lev = leverage(real);
+    const lev = leverage(fresh);
     const cg = lev.get("cg") ?? 0;
     expect(cg).toBeGreaterThan(lev.get("muspah") ?? 0);
     expect(cg).toBeGreaterThan(lev.get("zulrah") ?? 0);
   });
 
   test("completed nodes stop counting toward leverage", () => {
-    const before = leverage(real).get("slayer-grind") ?? 0;
+    const before = leverage(fresh).get("slayer-grind") ?? 0;
     const after = leverage(withDone("slayer-91", "cerberus")).get("slayer-grind") ?? 0;
     expect(after).toBeLessThan(before);
   });
 
   test("a leaf has none", () => {
-    expect(leverage(real).get("rancour")).toBe(0);
+    expect(leverage(fresh).get("rancour")).toBe(0);
   });
 });
 
@@ -83,9 +90,8 @@ describe("ancestry", () => {
     const anc = ancestors("rancour", adjacency(real));
     expect([...anc].sort()).toEqual([
       "araxxor",
-      "bowfa",
       "cg",
-      "gauntlet",
+      "full-crystal",
       "slayer-92",
       "slayer-grind",
       "song-of-elves",

@@ -24,46 +24,24 @@
       "pin": null
     },
     {
-      "id": "gauntlet",
-      "label": "The Gauntlet",
-      "kind": "activity",
-      "lane": "pvm",
-      "done": true,
-      "note": "",
-      "wiki": "https://oldschool.runescape.wiki/w/The_Gauntlet",
-      "verify": false,
-      "pin": null
-    },
-    {
       "id": "cg",
       "label": "Corrupted Gauntlet",
       "kind": "activity",
       "lane": "pvm",
       "done": true,
-      "note": "The single highest-leverage node in your list.",
+      "note": "Normal Gauntlet is part of the same grind — you learn it on the way in.",
       "wiki": "https://oldschool.runescape.wiki/w/Corrupted_Gauntlet",
       "verify": false,
       "pin": null
     },
     {
-      "id": "bowfa",
-      "label": "Bow of Faerdhinen",
+      "id": "full-crystal",
+      "label": "Full crystal + bowfa",
       "kind": "item",
       "lane": "pvm",
       "done": true,
-      "note": "Crystal weapon seed + 120 shards.",
+      "note": "Bow of Faerdhinen and 3x armour seed. One grind, tracked as one node.",
       "wiki": "https://oldschool.runescape.wiki/w/Bow_of_Faerdhinen",
-      "verify": false,
-      "pin": null
-    },
-    {
-      "id": "crystal-armour",
-      "label": "Full crystal armour",
-      "kind": "item",
-      "lane": "pvm",
-      "done": false,
-      "note": "3x armour seed.",
-      "wiki": "https://oldschool.runescape.wiki/w/Crystal_armour",
       "verify": false,
       "pin": null
     },
@@ -189,23 +167,12 @@
       "pin": null
     },
     {
-      "id": "dex-scroll",
-      "label": "Dexterous prayer scroll",
-      "kind": "item",
-      "lane": "raid",
-      "done": false,
-      "note": "",
-      "wiki": "https://oldschool.runescape.wiki/w/Dexterous_prayer_scroll",
-      "verify": false,
-      "pin": null
-    },
-    {
       "id": "rigour",
       "label": "Rigour",
       "kind": "milestone",
       "lane": "raid",
       "done": false,
-      "note": "74 Prayer to use.",
+      "note": "Dexterous prayer scroll from CoX, 74 Prayer to use.",
       "wiki": "https://oldschool.runescape.wiki/w/Rigour",
       "verify": false,
       "pin": null
@@ -489,55 +456,41 @@
   "edges": [
     {
       "from": "song-of-elves",
-      "to": "gauntlet",
+      "to": "cg",
       "type": "hard",
       "note": "",
       "verify": false
     },
     {
-      "from": "gauntlet",
-      "to": "cg",
-      "type": "soft",
-      "note": "Learn the normal version first.",
-      "verify": false
-    },
-    {
       "from": "cg",
-      "to": "bowfa",
+      "to": "full-crystal",
       "type": "grants",
       "note": "",
       "verify": false
     },
     {
-      "from": "cg",
-      "to": "crystal-armour",
-      "type": "grants",
-      "note": "",
-      "verify": false
-    },
-    {
-      "from": "bowfa",
+      "from": "full-crystal",
       "to": "muspah",
       "type": "soft",
       "note": "Your call: killable now, better after.",
       "verify": false
     },
     {
-      "from": "bowfa",
+      "from": "full-crystal",
       "to": "zulrah",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
-      "from": "bowfa",
+      "from": "full-crystal",
       "to": "cox",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
-      "from": "bowfa",
+      "from": "full-crystal",
       "to": "araxxor",
       "type": "soft",
       "note": "",
@@ -622,15 +575,8 @@
     },
     {
       "from": "cox",
-      "to": "dex-scroll",
-      "type": "grants",
-      "note": "",
-      "verify": false
-    },
-    {
-      "from": "dex-scroll",
       "to": "rigour",
-      "type": "hard",
+      "type": "grants",
       "note": "",
       "verify": false
     },

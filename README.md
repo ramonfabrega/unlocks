@@ -81,6 +81,12 @@ Everything is in the UI — you never open `graph.json` by hand.
 | zoom | scroll | two-finger pinch |
 | reposition | drag it — that pins it; **unpin all** restores auto-layout | same |
 | deselect / clear path | `escape` | `×` on the sheet |
+| declutter | **hide done**, and the lane chips | same, via `☰` |
+
+**hide done** removes completed nodes from the picture and recompacts the
+layout around what's left. Status and leverage keep being computed from the
+whole graph, so hiding a finished prerequisite never makes its dependents look
+locked again — Zulrah stays `ready` even with the crystal grind hidden.
 
 Layout is automatic (layered, longest-path, barycenter-ordered). Hand-placing a
 DAG feels good for ten minutes and then you dread editing it.
@@ -119,6 +125,12 @@ the flag once you've confirmed one.
 
 `Salvaging (?)` is a placeholder: it was nested under herb sack in the notes and
 couldn't be placed. Rename it or delete it.
+
+Some steps that are really one grind are modelled as one node rather than a
+chain of ceremony: **Corrupted Gauntlet** covers normal Gauntlet, **Full crystal
++ bowfa** covers the weapon seed and the armour seeds, and **Rigour** covers the
+dexterous prayer scroll. Split any of them back apart if the intermediate step
+ever becomes worth tracking on its own.
 
 ## Layout of the code
 

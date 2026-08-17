@@ -24,6 +24,7 @@ let selected: string | null = null;
 const hidden = new Set<Lane>();
 let query = "";
 let groupLanes = false;
+let hideDone = false;
 /** When set, everything outside this node's ancestry is dimmed. */
 let focus: string | null = null;
 const view = { x: 60, y: 40, k: 0.9 };
@@ -116,18 +117,39 @@ function wouldCycle(from: string, to: string): boolean {
 const matchesQuery = (n: GraphNode): boolean =>
   !query || n.label.toLowerCase().includes(query) || n.id.includes(query);
 
+const isVisible = (n: GraphNode): boolean => !hidden.has(n.lane) && !(hideDone && n.done);
+
+/**
+ * The graph minus whatever is filtered out. Layout runs on THIS so hiding
+ * compacts the picture instead of leaving holes — but status and leverage are
+ * always computed from the full graph, or hiding a done prerequisite would make
+ * everything downstream of it look locked again.
+ */
+function visibleGraph(): Graph {
+  const keep = new Set(graph.nodes.filter(isVisible).map((n) => n.id));
+  return {
+    version: graph.version,
+    nodes: graph.nodes.filter((n) => keep.has(n.id)),
+    edges: graph.edges.filter((e) => keep.has(e.from) && keep.has(e.to)),
+  };
+}
+
+/** Every hit-test and camera move must use the same layout the user is seeing. */
+const currentLayout = () => layout(visibleGraph(), { groupLanes });
+
 // ---------------------------------------------------------------------- render
 
 function render(): void {
   const adj = adjacency(graph);
   const status = statuses(graph, adj);
   const lev = leverage(graph, adj);
-  const placed = layout(graph, { groupLanes });
+  const vg = visibleGraph();
+  const placed = layout(vg, { groupLanes });
 
   const litNodes = focus ? new Set([focus, ...ancestors(focus, adj)]) : null;
 
-  renderEdges(placed, litNodes);
-  renderNodes(placed, status, litNodes);
+  renderEdges(vg, placed, litNodes);
+  renderNodes(vg, placed, status, litNodes);
   renderFrontier(status, lev, adj);
   renderLaneChips();
   renderStats(status);
@@ -135,15 +157,12 @@ function render(): void {
   applyView();
 }
 
-function renderEdges(placed: Map<string, Placed>, lit: Set<string> | null): void {
+function renderEdges(vg: Graph, placed: Map<string, Placed>, lit: Set<string> | null): void {
   const parts: string[] = [];
-  for (const e of graph.edges) {
+  for (const e of vg.edges) {
     const a = placed.get(e.from);
     const b = placed.get(e.to);
     if (!a || !b) continue;
-    const visible =
-      !hidden.has(nodeById(e.from)?.lane as Lane) && !hidden.has(nodeById(e.to)?.lane as Lane);
-    if (!visible) continue;
 
     const x1 = a.x + a.w;
     const y1 = a.y + a.h / 2;
@@ -160,14 +179,15 @@ function renderEdges(placed: Map<string, Placed>, lit: Set<string> | null): void
 }
 
 function renderNodes(
+  vg: Graph,
   placed: Map<string, Placed>,
   status: Map<string, Status>,
   lit: Set<string> | null,
 ): void {
   const parts: string[] = [];
-  for (const n of graph.nodes) {
+  for (const n of vg.nodes) {
     const p = placed.get(n.id);
-    if (!p || hidden.has(n.lane)) continue;
+    if (!p) continue;
 
     const st = status.get(n.id) ?? "locked";
     const dim = (lit && !lit.has(n.id)) || (query && !matchesQuery(n));
@@ -261,9 +281,11 @@ function renderStats(status: Map<string, Status>): void {
   const counts = { done: 0, ready: 0, possible: 0, locked: 0 };
   for (const n of graph.nodes) counts[status.get(n.id) ?? "locked"]++;
   const unverified = graph.nodes.filter((n) => n.verify).length;
+  const shown = graph.nodes.filter(isVisible).length;
   $("#stats").textContent =
     `${graph.nodes.length} nodes · ${counts.done} done · ${counts.locked} locked` +
-    (unverified ? ` · ${unverified} to verify` : "");
+    (unverified ? ` · ${unverified} to verify` : "") +
+    (shown < graph.nodes.length ? ` · ${graph.nodes.length - shown} hidden` : "");
 }
 
 // ---------------------------------------------------------------------- editor
@@ -432,7 +454,7 @@ function toWorld(clientX: number, clientY: number): { x: number; y: number } {
 }
 
 function fitToContent(): void {
-  const placed = layout(graph, { groupLanes });
+  const placed = currentLayout();
   if (!placed.size) return;
   let minX = Infinity;
   let minY = Infinity;
@@ -459,7 +481,7 @@ function fitToContent(): void {
 }
 
 function centerOn(id: string): void {
-  const p = layout(graph, { groupLanes }).get(id);
+  const p = currentLayout().get(id);
   if (!p) return;
   const r = svg.getBoundingClientRect();
   // On mobile the detail sheet covers the bottom of the canvas, so centring in
@@ -520,7 +542,7 @@ svg.addEventListener("pointerdown", (ev) => {
 
   if (nodeEl && target.classList.contains("handle")) {
     const id = nodeEl.dataset.id as string;
-    const p = layout(graph, { groupLanes }).get(id);
+    const p = currentLayout().get(id);
     if (!p) return;
     drag = { mode: "link", id, x1: p.x + p.w, y1: p.y + p.h / 2 };
     dragEdgePath.classList.add("on");
@@ -530,7 +552,7 @@ svg.addEventListener("pointerdown", (ev) => {
 
   if (nodeEl) {
     const id = nodeEl.dataset.id as string;
-    const p = layout(graph, { groupLanes }).get(id);
+    const p = currentLayout().get(id);
     const w = toWorld(ev.clientX, ev.clientY);
     if (!p) return;
     drag = {
@@ -742,6 +764,11 @@ $("#relayout").addEventListener("click", () => {
 
 $<HTMLInputElement>("#group-lanes").addEventListener("change", (ev) => {
   groupLanes = (ev.target as HTMLInputElement).checked;
+  render();
+});
+
+$<HTMLInputElement>("#hide-done").addEventListener("change", (ev) => {
+  hideDone = (ev.target as HTMLInputElement).checked;
   render();
 });
 
