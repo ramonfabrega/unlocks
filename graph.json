@@ -266,7 +266,10 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": null
+      "pin": {
+        "x": 240,
+        "y": 293
+      }
     },
     {
       "id": "slayer-93",
@@ -277,7 +280,10 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": null
+      "pin": {
+        "x": 245,
+        "y": 237
+      }
     },
     {
       "id": "slayer-95",
@@ -321,7 +327,10 @@
       "note": "",
       "wiki": "https://oldschool.runescape.wiki/w/Araxxor",
       "verify": false,
-      "pin": null
+      "pin": {
+        "x": 637,
+        "y": 515
+      }
     },
     {
       "id": "rancour",
@@ -488,13 +497,6 @@
     {
       "from": "full-crystal",
       "to": "cox",
-      "type": "soft",
-      "note": "",
-      "verify": false
-    },
-    {
-      "from": "full-crystal",
-      "to": "araxxor",
       "type": "soft",
       "note": "",
       "verify": false
