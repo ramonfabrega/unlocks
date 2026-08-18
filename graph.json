@@ -484,6 +484,17 @@
       "wiki": "",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-4",
+      "label": "2x Death Charge",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
@@ -783,6 +794,27 @@
     },
     {
       "from": "lightbearer",
+      "to": "new-node",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "yama",
+      "to": "new-node-4",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-4",
+      "to": "duke",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-4",
       "to": "new-node",
       "type": "soft",
       "note": "",
