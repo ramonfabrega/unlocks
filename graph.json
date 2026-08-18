@@ -528,6 +528,17 @@
       "wiki": "https://oldschool.runescape.wiki/w/Noxious_halberd",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-8",
+      "label": "Golem Crafting",
+      "kind": "activity",
+      "lane": "skilling",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
@@ -878,6 +889,13 @@
       "from": "occult",
       "to": "yama",
       "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "hunter-rumours",
+      "to": "new-node-8",
+      "type": "hard",
       "note": "",
       "verify": false
     }
