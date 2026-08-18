@@ -451,6 +451,17 @@
       "wiki": "https://oldschool.runescape.wiki/w/Hunter_Rumours",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node",
+      "label": "Colosseum",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
