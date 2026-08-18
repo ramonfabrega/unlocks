@@ -730,6 +730,13 @@
       "type": "soft",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "rigour",
+      "to": "new-node",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
