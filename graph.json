@@ -905,6 +905,13 @@
       "type": "hard",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "new-node-2",
+      "type": "grants",
+      "note": "",
+      "verify": false
     }
   ]
 }
