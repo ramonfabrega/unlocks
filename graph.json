@@ -517,6 +517,17 @@
       "wiki": "",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-7",
+      "label": "Noxious halberd",
+      "kind": "item",
+      "lane": "slayer",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Noxious_halberd",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
@@ -845,7 +856,7 @@
     {
       "from": "new-node-6",
       "to": "new-node-5",
-      "type": "soft",
+      "type": "grants",
       "note": "",
       "verify": false
     },
@@ -853,6 +864,13 @@
       "from": "oathplate",
       "to": "new-node-6",
       "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "araxxor",
+      "to": "new-node-7",
+      "type": "grants",
       "note": "",
       "verify": false
     }
