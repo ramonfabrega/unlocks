@@ -608,7 +608,7 @@
     {
       "from": "blowpipe",
       "to": "leviathan",
-      "type": "soft",
+      "type": "hard",
       "note": "",
       "verify": false
     },
