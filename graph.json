@@ -737,6 +737,13 @@
       "type": "soft",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "full-crystal",
+      "to": "new-node",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
