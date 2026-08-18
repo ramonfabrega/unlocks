@@ -712,6 +712,13 @@
       "type": "hard",
       "note": "Master tier.",
       "verify": true
+    },
+    {
+      "from": "venator-bow",
+      "to": "slayer-grind",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
