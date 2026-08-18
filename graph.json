@@ -472,10 +472,7 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": {
-        "x": 942,
-        "y": 681
-      }
+      "pin": null
     },
     {
       "id": "new-node-3",
@@ -486,10 +483,7 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": {
-        "x": 1157,
-        "y": 671
-      }
+      "pin": null
     }
   ],
   "edges": [
@@ -776,6 +770,13 @@
     {
       "from": "new-node-2",
       "to": "new-node-3",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-3",
+      "to": "new-node",
       "type": "soft",
       "note": "",
       "verify": false
