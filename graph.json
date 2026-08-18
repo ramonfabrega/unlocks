@@ -898,6 +898,13 @@
       "type": "hard",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "sceptre",
+      "to": "wealthy-citizens",
+      "type": "hard",
+      "note": "",
+      "verify": false
     }
   ]
 }
