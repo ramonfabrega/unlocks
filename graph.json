@@ -780,6 +780,13 @@
       "type": "soft",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "lightbearer",
+      "to": "new-node",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
