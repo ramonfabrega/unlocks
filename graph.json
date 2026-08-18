@@ -572,6 +572,28 @@
       "wiki": "",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-12",
+      "label": "Seers ring",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "new-node-13",
+      "label": "Dagannoth Kings",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
@@ -971,6 +993,20 @@
       "from": "dhl",
       "to": "cox",
       "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-13",
+      "to": "new-node-12",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-12",
+      "to": "magus-ring",
+      "type": "hard",
       "note": "",
       "verify": false
     }
