@@ -495,6 +495,34 @@
       "wiki": "",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-5",
+      "label": "Ultor ring",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": {
+        "x": 1181,
+        "y": 754
+      }
+    },
+    {
+      "id": "new-node-6",
+      "label": "New node",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": {
+        "x": 910,
+        "y": 755
+      }
     }
   ],
   "edges": [
