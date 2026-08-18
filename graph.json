@@ -1009,6 +1009,13 @@
       "type": "hard",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "slayer-grind",
+      "to": "new-node-13",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
