@@ -873,6 +873,13 @@
       "type": "grants",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "occult",
+      "to": "yama",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
