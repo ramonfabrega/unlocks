@@ -550,6 +550,28 @@
       "wiki": "",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-10",
+      "label": "Inferno",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "new-node-11",
+      "label": "Infernal cape",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
@@ -927,6 +949,20 @@
     {
       "from": "new-node",
       "to": "new-node-9",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-9",
+      "to": "new-node-10",
+      "type": "hard",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-10",
+      "to": "new-node-11",
       "type": "grants",
       "note": "",
       "verify": false
