@@ -505,24 +505,18 @@
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": {
-        "x": 1181,
-        "y": 754
-      }
+      "pin": null
     },
     {
       "id": "new-node-6",
-      "label": "New node",
+      "label": "Vardorvis",
       "kind": "activity",
       "lane": "pvm",
       "done": false,
       "note": "",
       "wiki": "",
       "verify": false,
-      "pin": {
-        "x": 910,
-        "y": 755
-      }
+      "pin": null
     }
   ],
   "edges": [
@@ -844,6 +838,20 @@
     {
       "from": "new-node-4",
       "to": "new-node",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node-6",
+      "to": "new-node-5",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "oathplate",
+      "to": "new-node-6",
       "type": "soft",
       "note": "",
       "verify": false
