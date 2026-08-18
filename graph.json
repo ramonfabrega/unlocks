@@ -539,6 +539,17 @@
       "wiki": "",
       "verify": false,
       "pin": null
+    },
+    {
+      "id": "new-node-9",
+      "label": "Quiver",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "",
+      "verify": false,
+      "pin": null
     }
   ],
   "edges": [
@@ -909,6 +920,13 @@
     {
       "from": "slayer-grind",
       "to": "new-node-2",
+      "type": "grants",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "new-node",
+      "to": "new-node-9",
       "type": "grants",
       "note": "",
       "verify": false
