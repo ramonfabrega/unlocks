@@ -1016,6 +1016,20 @@
       "type": "soft",
       "note": "",
       "verify": false
+    },
+    {
+      "from": "occult",
+      "to": "zulrah",
+      "type": "soft",
+      "note": "",
+      "verify": false
+    },
+    {
+      "from": "herb-sack",
+      "to": "hunter-rumours",
+      "type": "soft",
+      "note": "",
+      "verify": false
     }
   ]
 }
