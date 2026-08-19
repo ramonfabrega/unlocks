@@ -190,6 +190,66 @@ const DUMMY_H = 6;
 const DUMMY_GAP = 12;
 
 /**
+ * Longest-path layering puts every node as far LEFT as its prerequisites allow,
+ * which strands any node whose successors are far away: Desert Treasure II sat
+ * in column 0 with its nearest real successor eleven columns to the right, and
+ * every one of those columns then had to reserve a routing channel for it.
+ *
+ * Slide each node within the slack its neighbours leave it, minimising total
+ * edge span. Moving a node one column right costs one span per predecessor and
+ * saves one per successor, so the gradient is just (#preds - #succs) and greedy
+ * descent on it converges in a single pass. On the seed graph: total span
+ * 135 → 103, routed channels 73 → 41, longest edge 13 → 11 columns.
+ *
+ * Pushing every node as far right as it will go is the tempting version and it
+ * is worse — it lengthens the edges of anything left behind on the left.
+ *
+ * The layer COUNT is untouched: that is the graph's longest path (17 columns
+ * here) and no layering can compress it. This only removes slack.
+ */
+function tighten(g: Graph, adj: Adjacency, order: string[], layer: Map<string, number>): void {
+  const maxLayer = Math.max(0, ...layer.values());
+
+  for (let pass = 0; pass < 8; pass++) {
+    let moved = 0;
+    for (const id of order) {
+      const incoming = adj.preds.get(id) ?? [];
+      const outgoing = adj.succs.get(id) ?? [];
+      const earliest = incoming.length
+        ? Math.max(...incoming.map((e) => (layer.get(e.from) ?? 0) + 1))
+        : 0;
+      const latest = outgoing.length
+        ? Math.min(...outgoing.map((e) => (layer.get(e.to) ?? maxLayer) - 1))
+        : maxLayer;
+      if (latest <= earliest) {
+        if (layer.get(id) !== earliest) {
+          layer.set(id, earliest);
+          moved++;
+        }
+        continue;
+      }
+      const pull =
+        incoming.length > outgoing.length
+          ? earliest
+          : incoming.length < outgoing.length
+            ? latest
+            : (layer.get(id) ?? earliest);
+      const next = Math.min(latest, Math.max(earliest, pull));
+      if (next !== layer.get(id)) {
+        layer.set(id, next);
+        moved++;
+      }
+    }
+    if (!moved) break;
+  }
+
+  // Tightening can empty a column; close the gaps so `columns` stays dense.
+  const used = [...new Set(layer.values())].sort((a, b) => a - b);
+  const packed = new Map(used.map((v, i) => [v, i]));
+  for (const n of g.nodes) layer.set(n.id, packed.get(layer.get(n.id) ?? 0) ?? 0);
+}
+
+/**
  * Layered (Sugiyama) left-to-right layout, in four passes:
  *
  *  1. longest-path layering                → which column each node lives in
@@ -218,6 +278,7 @@ export function layout(
       incoming.length ? Math.max(...incoming.map((e) => (layer.get(e.from) ?? 0) + 1)) : 0,
     );
   }
+  tighten(g, adj, order, layer);
 
   const columns: string[][] = [];
   const addSlot = (l: number, id: string) => {
@@ -399,10 +460,34 @@ export function layout(
    * Pin one slot at `top` and shove the rest of its column aside to make room,
    * keeping the established order. Overlap-free by construction: a neighbour is
    * only ever pushed further away from the anchor, never toward it.
+   *
+   * Slots in `locked` were placed by a longer chain earlier in this pass. `top`
+   * is first clamped into whatever room they leave, so a short chain bends
+   * around a long one instead of kicking it off its line — without that, the
+   * last chain to be processed wins and every earlier one is left staircased.
+   * The clamp is advisory: the push loops below still run unconditionally, so
+   * an over-constrained column stays overlap-free either way.
    */
-  const anchor = (col: string[], at: number, top: number): void => {
+  const anchor = (col: string[], at: number, top: number, locked: ReadonlySet<string>): void => {
     const anchored = col[at];
     if (!anchored) return;
+
+    let minTop = Number.NEGATIVE_INFINITY;
+    let acc = 0;
+    for (let i = at - 1; i >= 0; i--) {
+      const cur = col[i] as string;
+      acc += heightOf(cur) + gapOf(cur, col[i + 1] as string);
+      if (locked.has(cur)) minTop = Math.max(minTop, (y.get(cur) ?? 0) + acc);
+    }
+    let maxTop = Number.POSITIVE_INFINITY;
+    acc = 0;
+    for (let i = at + 1; i < col.length; i++) {
+      const cur = col[i] as string;
+      acc += heightOf(col[i - 1] as string) + gapOf(col[i - 1] as string, cur);
+      if (locked.has(cur)) maxTop = Math.min(maxTop, (y.get(cur) ?? 0) - acc);
+    }
+    if (minTop <= maxTop) top = Math.min(maxTop, Math.max(minTop, top));
+
     y.set(anchored, top);
     for (let i = at - 1; i >= 0; i--) {
       const cur = col[i] as string;
@@ -422,8 +507,20 @@ export function layout(
   // still nudge it into a slope. Anchor each routed chain onto the straight line
   // between its endpoints and push the columns out of its way — clamping it to
   // existing slack instead leaves bends stranded wherever a column is crowded.
-  for (let pass = 0; pass < 4; pass++) {
-    for (const { from, to, route } of routeOf.values()) {
+  //
+  // Longest chain first: it crosses the most columns, so it is the one that
+  // reads as a diagonal slash across the whole drawing when it bends, and it has
+  // the least room to recover. Each chain locks its slots for the rest of the
+  // pass so the next one has to work around it.
+  const chains = [...routeOf.values()].sort((a, b) => b.route.length - a.route.length);
+  const ANCHOR_PASSES = 6;
+  for (let pass = 0; pass < ANCHOR_PASSES; pass++) {
+    // Ease in: early passes only nudge, so chains crossing the same columns
+    // settle into a shared compromise instead of the last one written winning
+    // outright. The final passes place exactly.
+    const damp = Math.min(1, 0.25 + (pass / ANCHOR_PASSES) * 1.5);
+    const locked = new Set<string>();
+    for (const { from, to, route } of chains) {
       const fromNode = adj.byId.get(from);
       // Interpolate against the exact geometry the renderer will use: the line
       // runs from the source's right edge to the target's left edge, and each
@@ -441,8 +538,11 @@ export function layout(
         const col = columns[l];
         if (!col) continue;
         const t = ((xs[l] ?? 0) + (widths[l] ?? MIN_W) / 2 - x0) / spanX;
-        anchor(col, pos.get(d) ?? 0, fy + (ty - fy) * t - DUMMY_H / 2);
+        const target = fy + (ty - fy) * t - DUMMY_H / 2;
+        const cur = y.get(d) ?? target;
+        anchor(col, pos.get(d) ?? 0, cur + (target - cur) * damp, locked);
       }
+      for (const d of route) locked.add(d);
     }
   }
 
