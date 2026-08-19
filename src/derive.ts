@@ -1,4 +1,10 @@
-import type { Graph, GraphEdge, GraphNode, NodeKind } from "./schema.ts";
+import {
+  type Graph,
+  type GraphEdge,
+  type GraphNode,
+  isStructural,
+  type NodeKind,
+} from "./schema.ts";
 
 /**
  * Nothing here is stored. Status, leverage and position are all recomputed from
@@ -24,6 +30,13 @@ export interface Adjacency {
   succs: Map<string, GraphEdge[]>;
 }
 
+/**
+ * Structural edges only. Annotation edges (`boosts`) are excluded here rather
+ * than at each call site, which is what makes them safe: every consumer of
+ * adjacency — status, leverage, ancestry, topological order, layout — is
+ * annotation-blind by construction, so no one has to remember to filter.
+ * Reach for `annotations()` when you specifically want them.
+ */
 export function adjacency(g: Graph): Adjacency {
   const byId = new Map(g.nodes.map((n) => [n.id, n]));
   const preds = new Map<string, GraphEdge[]>();
@@ -33,11 +46,35 @@ export function adjacency(g: Graph): Adjacency {
     succs.set(n.id, []);
   }
   for (const e of g.edges) {
-    if (!byId.has(e.from) || !byId.has(e.to)) continue;
+    if (!byId.has(e.from) || !byId.has(e.to) || !isStructural(e)) continue;
     preds.get(e.to)?.push(e);
     succs.get(e.from)?.push(e);
   }
   return { byId, preds, succs };
+}
+
+export interface Annotations {
+  /** `id` makes these better. */
+  improves: Map<string, GraphEdge[]>;
+  /** These make `id` better. */
+  improvedBy: Map<string, GraphEdge[]>;
+}
+
+/** The half of the graph that carries no ordering claim. May contain cycles. */
+export function annotations(g: Graph): Annotations {
+  const ids = new Set(g.nodes.map((n) => n.id));
+  const improves = new Map<string, GraphEdge[]>();
+  const improvedBy = new Map<string, GraphEdge[]>();
+  for (const n of g.nodes) {
+    improves.set(n.id, []);
+    improvedBy.set(n.id, []);
+  }
+  for (const e of g.edges) {
+    if (isStructural(e) || !ids.has(e.from) || !ids.has(e.to)) continue;
+    improves.get(e.from)?.push(e);
+    improvedBy.get(e.to)?.push(e);
+  }
+  return { improves, improvedBy };
 }
 
 /** Kahn's algorithm. Any node caught in a cycle is appended at the end. */
@@ -306,6 +343,10 @@ export function layout(
   };
 
   for (const e of g.edges) {
+    // Annotation edges get no column and no channel: they routinely point
+    // backwards (ancestral improves the Slayer grind you were doing first) and
+    // reserving space for them would bend the drawing around a non-claim.
+    if (!isStructural(e)) continue;
     const l1 = layer.get(e.from);
     const l2 = layer.get(e.to);
     if (l1 === undefined || l2 === undefined) continue;

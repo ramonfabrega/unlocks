@@ -18,13 +18,30 @@ export type Lane = z.infer<typeof Lane>;
  *  grants — `to` is obtained by doing `from`   (CG grants bowfa)
  *  hard   — `to` is game-locked behind `from`  (92 Slayer gates Araxxor)
  *  soft   — you want `from` before `to`        (bowfa before Muspah)
+ *  boosts — `from` makes `to` better           (ancestral makes Slayer nicer)
  *
  * grants and hard both block. soft never blocks — it only downgrades a node
  * from "ready" to "possible", which is exactly the Muspah case: killable now,
  * but you'd rather have the bow first.
+ *
+ * boosts is not part of the DAG at all. It exists because three types forced
+ * every true observation to be filed as a plan: "ancestral is good for Slayer"
+ * had to become "I want ancestral before Slayer", which is false — you slay from
+ * day one — and which put Slayer behind a raid. The result was self-censorship:
+ * real relationships went unrecorded because recording them lied about the
+ * order of play. So a boosts edge carries no ordering claim. It never blocks,
+ * never downgrades a status, never earns leverage, never takes a layout column,
+ * and is exempt from the acyclic rule — ancestral boosting Slayer while Slayer
+ * boosts the gear that buys it is a fact about the game, not a contradiction.
+ * It is a note stuck to two nodes, and it is safe to write down.
  */
-export const EdgeType = z.enum(["grants", "hard", "soft"]);
+export const EdgeType = z.enum(["grants", "hard", "soft", "boosts"]);
 export type EdgeType = z.infer<typeof EdgeType>;
+
+/** The edge types that make up the DAG proper. Everything else is annotation. */
+export const STRUCTURAL: ReadonlySet<EdgeType> = new Set<EdgeType>(["grants", "hard", "soft"]);
+
+export const isStructural = (e: { type: EdgeType }): boolean => STRUCTURAL.has(e.type);
 
 export const Pin = z.object({ x: z.number(), y: z.number() });
 
@@ -94,7 +111,8 @@ export function validateGraph(g: Graph): string[] {
 export function findCycle(g: Graph): string[] | null {
   const succs = new Map<string, string[]>();
   for (const n of g.nodes) succs.set(n.id, []);
-  for (const e of g.edges) succs.get(e.from)?.push(e.to);
+  // Annotation edges are deliberately allowed to close loops — see EdgeType.
+  for (const e of g.edges) if (isStructural(e)) succs.get(e.from)?.push(e.to);
 
   const WHITE = 0;
   const GREY = 1;
