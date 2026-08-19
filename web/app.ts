@@ -1,6 +1,7 @@
 import {
   adjacency,
   ancestors,
+  annotations,
   descendants,
   edgeKey,
   fitLabel,
@@ -11,11 +12,19 @@ import {
   type Status,
   statuses,
 } from "../src/derive.ts";
-import type { EdgeType, Graph, GraphEdge, GraphNode, Lane, NodeKind } from "../src/schema.ts";
+import {
+  type EdgeType,
+  type Graph,
+  type GraphEdge,
+  type GraphNode,
+  isStructural,
+  type Lane,
+  type NodeKind,
+} from "../src/schema.ts";
 
 const LANES: Lane[] = ["quest", "pvm", "raid", "slayer", "skilling"];
 const KINDS: NodeKind[] = ["activity", "item", "milestone"];
-const EDGE_TYPES: EdgeType[] = ["grants", "hard", "soft"];
+const EDGE_TYPES: EdgeType[] = ["grants", "hard", "soft", "boosts"];
 const KIND_TAG: Record<NodeKind, string> = { activity: "", item: "item", milestone: "lvl" };
 
 // ---------------------------------------------------------------------- state
@@ -154,7 +163,7 @@ function render(): void {
   renderFrontier(status, lev, adj);
   renderLaneChips();
   renderStats(status);
-  renderEditor(adj, status, lev);
+  renderEditor(adj, annotations(graph), status, lev);
   applyView();
 }
 
@@ -194,6 +203,15 @@ function renderEdges(
     const b = placed.get(e.to);
     if (!a || !b) continue;
 
+    // Annotation edges are drawn only for the node you are looking at. Painting
+    // all of them all the time is what would turn the map back into hairball —
+    // and they are precisely the edges that point backwards.
+    if (!isStructural(e)) {
+      if (selected !== e.from && selected !== e.to) continue;
+      parts.push(`<path class="edge boosts" d="${annotationPath(a, b)}"></path>`);
+      continue;
+    }
+
     const via = bends.get(edgeKey(e.from, e.to)) ?? [];
     const d = routePath([{ x: a.x + a.w, y: a.y + a.h / 2 }, ...via, { x: b.x, y: b.y + b.h / 2 }]);
 
@@ -202,6 +220,21 @@ function renderEdges(
     parts.push(`<path class="${cls}" d="${d}"></path>`);
   }
   gEdges.innerHTML = parts.join("");
+}
+
+/**
+ * Annotation edges get no routing channel, so they take the direct line and bow
+ * out of it — enough curve to read as a separate kind of statement, and to stay
+ * visible when it runs backwards underneath the columns it crosses.
+ */
+function annotationPath(a: Placed, b: Placed): string {
+  const backwards = b.x < a.x;
+  const x0 = backwards ? a.x : a.x + a.w;
+  const x1 = backwards ? b.x + b.w : b.x;
+  const y0 = a.y + a.h / 2;
+  const y1 = b.y + b.h / 2;
+  const bow = Math.max(30, Math.abs(x1 - x0) * 0.18);
+  return `M${x0},${y0} C${x0 + (backwards ? -bow : bow)},${y0 - bow} ${x1 + (backwards ? bow : -bow)},${y1 - bow} ${x1},${y1}`;
 }
 
 function renderNodes(
@@ -323,6 +356,7 @@ function renderStats(status: Map<string, Status>): void {
 
 function renderEditor(
   adj: ReturnType<typeof adjacency>,
+  ann: ReturnType<typeof annotations>,
   status: Map<string, Status>,
   lev: Map<string, number>,
 ): void {
@@ -337,6 +371,8 @@ function renderEditor(
   const st = status.get(n.id) ?? "locked";
   const preds = adj.preds.get(n.id) ?? [];
   const succs = adj.succs.get(n.id) ?? [];
+  const improves = ann.improves.get(n.id) ?? [];
+  const improvedBy = ann.improvedBy.get(n.id) ?? [];
 
   const depRow = (e: GraphEdge, dir: "in" | "out") => {
     const other = dir === "in" ? e.from : e.to;
@@ -381,6 +417,16 @@ function renderEditor(
     `<div class="block"><h2>unlocks <span class="count">${succs.length}</span></h2>` +
     (succs.length ? succs.map((e) => depRow(e, "out")).join("") : `<p class="hint">nothing</p>`) +
     `<p class="hint">${lev.get(n.id) ?? 0} node(s) sit behind this in total.</p></div>` +
+    (improves.length
+      ? `<div class="block"><h2>improves <span class="count">${improves.length}</span></h2>` +
+        improves.map((e) => depRow(e, "out")).join("") +
+        `</div>`
+      : "") +
+    (improvedBy.length
+      ? `<div class="block"><h2>improved by <span class="count">${improvedBy.length}</span></h2>` +
+        improvedBy.map((e) => depRow(e, "in")).join("") +
+        `</div>`
+      : "") +
     `<footer class="foot">` +
     (n.verify ? `<button id="e-verified" type="button">mark verified</button>` : "") +
     (n.pin ? `<button id="e-unpin" type="button">unpin</button>` : "") +
@@ -461,7 +507,18 @@ function wireEditor(n: GraphNode): void {
       render();
     });
     dep.querySelector<HTMLSelectElement>(".etype")?.addEventListener("change", (ev) => {
-      if (edge) edge.type = (ev.target as HTMLSelectElement).value as EdgeType;
+      const select = ev.target as HTMLSelectElement;
+      const next = select.value as EdgeType;
+      if (!edge) return;
+      // Promoting an annotation to a real dependency can close a loop that was
+      // legal while it carried no ordering claim. Catch it here rather than
+      // letting the save bounce off the server with a cycle error.
+      if (isStructural({ type: next }) && !isStructural(edge) && wouldCycle(edge.from, edge.to)) {
+        select.value = edge.type;
+        setStatus(`${labelOf(edge.to)} already leads to ${labelOf(edge.from)}`, "error");
+        return;
+      }
+      edge.type = next;
       save();
       render();
     });

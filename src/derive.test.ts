@@ -1,6 +1,22 @@
 import { describe, expect, test } from "bun:test";
-import { adjacency, ancestors, edgeKey, layout, leverage, NODE_H, statuses } from "./derive.ts";
-import { findCycle, Graph, type GraphNode, type Lane, validateGraph } from "./schema.ts";
+import {
+  adjacency,
+  ancestors,
+  annotations,
+  edgeKey,
+  layout,
+  leverage,
+  NODE_H,
+  statuses,
+} from "./derive.ts";
+import {
+  findCycle,
+  Graph,
+  type GraphNode,
+  isStructural,
+  type Lane,
+  validateGraph,
+} from "./schema.ts";
 
 const real = Graph.parse(await Bun.file(new URL("../graph.json", import.meta.url)).json());
 
@@ -116,6 +132,68 @@ describe("leverage", () => {
   });
 });
 
+/**
+ * The whole promise of an annotation edge is that adding one is free: it records
+ * something true about the game without making any claim about the order you do
+ * things in. Every one of these assertions is that promise, stated once.
+ *
+ * The motivating case is the real one — ancestral robes come out of a raid and
+ * make the Slayer grind nicer, while the Slayer grind is what you were doing
+ * long before the raid. As a soft edge that reads "get ancestral before
+ * slaying", which is false, and it parks Slayer behind Chambers of Xeric.
+ */
+describe("annotation edges", () => {
+  /** far --boosts--> quest, which is a hard backwards edge across the fixture. */
+  const annotated: Graph = Graph.parse({
+    ...fixture,
+    edges: [...fixture.edges, { from: "far", to: "quest", type: "boosts" }],
+  });
+
+  test("never changes a status", () => {
+    const before = statuses(fixture);
+    const after = statuses(annotated);
+    for (const n of fixture.nodes) expect(after.get(n.id)).toBe(before.get(n.id));
+  });
+
+  test("never earns leverage", () => {
+    const before = leverage(fixture);
+    const after = leverage(annotated);
+    for (const n of fixture.nodes) expect(after.get(n.id)).toBe(before.get(n.id));
+  });
+
+  test("never enters ancestry", () => {
+    expect(ancestors("quest", adjacency(annotated)).size).toBe(0);
+  });
+
+  test("never moves the drawing", () => {
+    const before = layout(fixture).placed;
+    const after = layout(annotated).placed;
+    for (const [id, p] of before) expect(after.get(id)).toEqual(p);
+  });
+
+  test("is allowed to close a loop", () => {
+    // far is already downstream of quest, so this is a cycle in every sense
+    // except the one that matters — and the graph stays valid.
+    expect(findCycle(annotated)).toBeNull();
+    expect(validateGraph(annotated)).toEqual([]);
+  });
+
+  test("the same edge as `soft` would be rejected outright", () => {
+    const asSoft: Graph = Graph.parse({
+      ...fixture,
+      edges: [...fixture.edges, { from: "far", to: "quest", type: "soft" }],
+    });
+    expect(findCycle(asSoft)).not.toBeNull();
+  });
+
+  test("is readable from both ends", () => {
+    const ann = annotations(annotated);
+    expect(ann.improves.get("far")?.map((e) => e.to)).toEqual(["quest"]);
+    expect(ann.improvedBy.get("quest")?.map((e) => e.from)).toEqual(["far"]);
+    expect(ann.improves.get("quest")).toEqual([]);
+  });
+});
+
 describe("ancestry", () => {
   test("collects every transitive prerequisite, and nothing else", () => {
     expect([...ancestors("item2", adjacency(fixture))].sort()).toEqual([
@@ -141,9 +219,10 @@ describe("layout", () => {
     expect(layout(pinned).placed.get("boss1")).toMatchObject({ x: 999, y: 777, pinned: true });
   });
 
-  test("layers strictly increase across every edge", () => {
+  test("layers strictly increase across every structural edge", () => {
     const { placed } = layout(real);
-    for (const e of real.edges) {
+    // Annotation edges are exempt by design — they routinely point backwards.
+    for (const e of real.edges.filter(isStructural)) {
       expect(placed.get(e.from)?.layer ?? -1).toBeLessThan(placed.get(e.to)?.layer ?? -1);
     }
   });

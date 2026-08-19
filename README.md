@@ -32,14 +32,41 @@ own right, a thing that unlocks two things just has two out-edges.
 **Edges carry the distinction you were already making by hand.** "92 Slayer for
 Araxxor" and "oathplate would be nice before Duke" are not the same claim:
 
-| type     | meaning                        | blocks? |
-| -------- | ------------------------------ | ------- |
-| `grants` | doing X is where Y comes from  | yes     |
-| `hard`   | the game will not let you      | yes     |
-| `soft`   | you'd rather have X first      | no      |
+| type     | meaning                        | blocks? | ordered? |
+| -------- | ------------------------------ | ------- | -------- |
+| `grants` | doing X is where Y comes from  | yes     | yes      |
+| `hard`   | the game will not let you      | yes     | yes      |
+| `soft`   | you'd rather have X first      | no      | yes      |
+| `boosts` | X makes Y better               | no      | **no**   |
 
 Soft edges are most of what you track, and they're the part no wiki can give
 you — they're your judgment about your account.
+
+## Why `boosts` is not an edge like the others
+
+Three types made every true observation get filed as a plan. Ancestral robes
+drop in Chambers of Xeric and make the Slayer grind nicer — but the only way to
+write that down was `ancestral --soft--> slayer grind`, which asserts you want
+ancestral *before* you slay. You don't. You slay from day one. And it parks the
+Slayer grind behind a raid, which then drags everything gated on Slayer levels
+along with it.
+
+So the relationship went unrecorded. That's the real cost: the model was quietly
+teaching you to leave out things you knew, because the only way to say them was
+to say something false.
+
+A `boosts` edge makes no claim about order. It never blocks, never downgrades a
+status, never earns leverage, never takes a layout column, and is **exempt from
+the acyclic rule** — ancestral improving the Slayer grind while the Slayer grind
+funds the gear that gets you into the raid is a fact about the game, not a
+contradiction. It's a note stuck to two nodes.
+
+Because it makes no ordering claim, it also can't be drawn as one: annotation
+edges appear only when you select one of their endpoints, as a dotted teal bow
+with no arrowhead. Everything else about the picture stays exactly as it was.
+
+**Write these down freely.** They're the cheapest edges in the model, and they
+are the ones that answer "what would make this less painful".
 
 ## Status is derived
 

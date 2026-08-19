@@ -23,6 +23,8 @@
   --edge-grants: #55606f;
   --edge-hard: #a8574f;
   --edge-soft: #4a5464;
+  /* Annotation, not dependency — teal keeps it out of the status/lane vocabulary. */
+  --edge-boosts: #3fa9a0;
 }
 
 * {
@@ -306,6 +308,10 @@ button.primary {
   border-top-style: dashed;
   border-color: var(--edge-soft);
 }
+.ln.boosts {
+  border-top-style: dotted;
+  border-color: var(--edge-boosts);
+}
 
 .foot {
   margin-top: auto;
@@ -490,6 +496,15 @@ button.primary {
   stroke-dasharray: 5 4;
   marker-end: url(#arrow-soft);
 }
+/* No arrowhead: a boost is not a step you take, so it gets no direction of travel. */
+.edge.boosts {
+  stroke: var(--edge-boosts);
+  stroke-width: 1.6;
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
 .edge.dim {
   opacity: 0.08;
 }
