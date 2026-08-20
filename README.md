@@ -131,6 +131,32 @@ layout around what's left. Status and leverage keep being computed from the
 whole graph, so hiding a finished prerequisite never makes its dependents look
 locked again — Zulrah stays `ready` even with the crystal grind hidden.
 
+## The lens
+
+The whole graph is about 4000px wide and 640px tall — a shape no screen
+matches, so the map is a poster you pan across rather than something you read.
+But almost every question you actually have is local: what does this need, what
+does it open up, what else is near it.
+
+**Show** bounds how far around the selected node the picture reaches. Layout
+runs on the result, so the drawing genuinely recompacts — it isn't the big
+picture with parts hidden. Measured, growing outward from one node:
+
+|                    | 1 hop | 2 hops | 3 hops |
+| ------------------ | ----- | ------ | ------ |
+| Corrupted Gauntlet |     3 |      7 |     16 |
+| Zulrah             |     4 |     11 |     23 |
+| Slayer grind       |    10 |     19 |     30 |
+
+Two hops is the readable range, so that's the default. Clicking a node in the
+lens re-centres the lens on it, which is how you walk the graph.
+
+It keys off the **selection** and nothing else — with nothing selected you get
+the whole map. Seeding from the frontier instead ("show everything I could
+start, plus context") sounds better and isn't: 14 seeds reach 39 nodes at one
+hop and 47 at two, which is the whole map with extra steps. The sidebar answers
+"what can I do" better than fourteen disconnected boxes would.
+
 ## Layout
 
 Automatic, in four passes: longest-path layering picks the column, dummy chains
