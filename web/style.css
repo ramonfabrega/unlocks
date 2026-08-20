@@ -262,6 +262,32 @@ button.primary {
   border-color: currentColor;
 }
 
+.seg {
+  display: flex;
+  gap: 0;
+}
+.seg button {
+  flex: 1;
+  border-radius: 0;
+  border-left-width: 0;
+  font-size: 11px;
+  padding: 5px 4px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.seg button:first-child {
+  border-left-width: 1px;
+  border-radius: 6px 0 0 6px;
+}
+.seg button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+.seg button.on {
+  background: var(--possible);
+  border-color: var(--possible);
+  color: #fff;
+}
+
 .legend {
   list-style: none;
   margin: 0 0 8px;

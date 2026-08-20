@@ -34,6 +34,8 @@ const hidden = new Set<Lane>();
 let query = "";
 let groupLanes = false;
 let hideDone = false;
+/** Hops around the SELECTED node to draw; null shows the whole map. See visibleGraph. */
+let depth: number | null = 2;
 /** When set, everything unrelated to this node is dimmed. */
 let focus: string | null = null;
 const view = { x: 60, y: 40, k: 0.9 };
@@ -132,9 +134,9 @@ async function load(): Promise<void> {
   $<HTMLInputElement>("#group-lanes").checked = groupLanes;
   $<HTMLInputElement>("#hide-done").checked = hideDone;
 
-  if (!restored) fitToContent();
+  if (!restored || (depth !== null && selected)) fitToContent();
   render();
-  if (linked) centerOn(linked);
+  if (linked) focusCamera(linked);
   syncHash();
 }
 
@@ -198,7 +200,7 @@ function saveSession(): void {
     try {
       localStorage.setItem(
         SESSION_KEY,
-        JSON.stringify({ view, hidden: [...hidden], hideDone, groupLanes, selected, focus }),
+        JSON.stringify({ view, hidden: [...hidden], hideDone, groupLanes, depth, selected, focus }),
       );
     } catch {
       // Private browsing, quota, a disabled store — none of it is worth an error.
@@ -220,6 +222,7 @@ function loadSession(): boolean {
     if (Array.isArray(s.hidden)) for (const l of s.hidden) hidden.add(l as Lane);
     hideDone = !!s.hideDone;
     groupLanes = !!s.groupLanes;
+    if (s.depth === null || typeof s.depth === "number") depth = s.depth;
     selected = typeof s.selected === "string" ? s.selected : null;
     focus = typeof s.focus === "string" ? s.focus : null;
     if (s.view && Number.isFinite(s.view.k)) {
@@ -302,6 +305,64 @@ const matchesQuery = (n: GraphNode): boolean =>
 const isVisible = (n: GraphNode): boolean => !hidden.has(n.lane) && !(hideDone && n.done);
 
 /**
+ * The lens.
+ *
+ * The whole graph is 4000px wide and 640px tall — a shape no screen matches, so
+ * the map view is a poster you pan across rather than something you read. But
+ * almost every actual question is local: what does this need, what does it open
+ * up, what else is near it. Those answers involve five to fifteen nodes and fit
+ * on a phone.
+ *
+ * So `depth` bounds how many hops from the SELECTED node the picture reaches,
+ * and null means the old whole-map behaviour. Layout runs on the result, so the
+ * drawing genuinely recompacts rather than hiding parts of a big one.
+ *
+ * Measured on the seed graph — selecting one node and growing outwards:
+ *
+ *            1 hop   2 hops   3 hops
+ *   cg           3        7       16
+ *   zulrah       4       11       23
+ *   slayer       10      19       30
+ *
+ * Two hops is the readable range, which is why it is the default.
+ *
+ * It keys off the selection and nothing else. Seeding from the frontier instead
+ * — "show me everything I could start, plus context" — sounds better and is not:
+ * 14 seeds reach 39 nodes at one hop and 47 at two, which is the whole map again
+ * with extra steps. With nothing selected you get the map, and the sidebar
+ * answers "what can I do" better than fourteen disconnected boxes would.
+ */
+function withinDepth(seeds: string[], radius: number): Set<string> {
+  const near = new Map<string, string[]>();
+  const link = (a: string, b: string) => {
+    const l = near.get(a);
+    if (l) l.push(b);
+    else near.set(a, [b]);
+  };
+  // Undirected, and annotations count: "what improves this" is exactly the kind
+  // of neighbour you opened the node to find.
+  for (const e of graph.edges) {
+    link(e.from, e.to);
+    link(e.to, e.from);
+  }
+
+  const seen = new Set(seeds);
+  let layer = seeds;
+  for (let d = 0; d < radius && layer.length; d++) {
+    const next: string[] = [];
+    for (const id of layer) {
+      for (const nb of near.get(id) ?? []) {
+        if (seen.has(nb)) continue;
+        seen.add(nb);
+        next.push(nb);
+      }
+    }
+    layer = next;
+  }
+  return seen;
+}
+
+/**
  * The graph minus whatever is filtered out. Layout runs on THIS so hiding
  * compacts the picture instead of leaving holes — but status and leverage are
  * always computed from the full graph, or hiding a done prerequisite would make
@@ -309,6 +370,10 @@ const isVisible = (n: GraphNode): boolean => !hidden.has(n.lane) && !(hideDone &
  */
 function visibleGraph(): Graph {
   const keep = new Set(graph.nodes.filter(isVisible).map((n) => n.id));
+  if (depth !== null && selected && keep.has(selected)) {
+    const lens = withinDepth([selected], depth);
+    for (const id of [...keep]) if (!lens.has(id)) keep.delete(id);
+  }
   return {
     version: graph.version,
     nodes: graph.nodes.filter((n) => keep.has(n.id)),
@@ -339,6 +404,7 @@ function render(): void {
   renderNodes(vg, placed, status, litNodes);
   renderFrontier(status, lev, adj);
   renderLaneChips();
+  renderDepth();
   renderStats(status);
   renderEditor(adj, annotations(graph), status, lev);
   applyView();
@@ -733,16 +799,35 @@ function fitToContent(): void {
   }
   const r = svg.getBoundingClientRect();
   const pad = 48;
-  // Deliberately NOT fit-to-everything: a 10-layer DAG squeezed into one screen
-  // is unreadable. Start at a zoom where labels are legible, pinned to the roots
-  // on the left, and let the user pan rightward through the progression.
-  // Cap tighter on mobile so the first paint shows a chunk of the graph rather
-  // than three nodes — pinching in is easier than hunting for context.
-  const fit = (r.height - pad * 2) / (maxY - minY);
+  const w = maxX - minX;
+  const h = maxY - minY;
   const [floor, cap] = isMobile() ? [0.3, 0.6] : [0.55, 1];
-  view.k = Math.min(cap, Math.max(floor, fit));
-  view.x = pad - minX * view.k;
-  view.y = (r.height - (maxY - minY) * view.k) / 2 - minY * view.k;
+
+  // Whether the whole drawing can be shown at a legible zoom decides the whole
+  // behaviour. A lens can, so centre it and show all of it. The full map cannot
+  // — a 17-layer DAG squeezed into one screen is unreadable — so fit the height
+  // only, pin to the roots on the left, and let the user pan rightward through
+  // the progression.
+  const both = Math.min((r.width - pad * 2) / w, (r.height - pad * 2) / h);
+  const wholeThingFits = both >= floor;
+
+  view.k = Math.min(cap, Math.max(floor, wholeThingFits ? both : (r.height - pad * 2) / h));
+  view.x = wholeThingFits ? (r.width - w * view.k) / 2 - minX * view.k : pad - minX * view.k;
+  view.y = (r.height - h * view.k) / 2 - minY * view.k;
+}
+
+/**
+ * Where to put the camera after the selection changes. In lens mode the drawing
+ * is a different drawing now, so re-fit it; on the whole map it is the same
+ * picture and only the viewpoint needs to move.
+ */
+function focusCamera(id: string): void {
+  if (depth !== null && selected) {
+    fitToContent();
+    applyView();
+  } else {
+    centerOn(id);
+  }
 }
 
 function centerOn(id: string): void {
@@ -961,6 +1046,13 @@ function endPointer(ev: PointerEvent): void {
   if (!d.moved) {
     selected = selected === d.id ? null : d.id;
     render();
+    // In lens mode the picture is rebuilt around whatever you just tapped, so
+    // the camera has to follow or you end up looking at empty canvas. Also on
+    // deselect, which expands back to the whole map.
+    if (depth !== null) {
+      fitToContent();
+      applyView();
+    }
   } else if (d.pins) {
     // The whole drag is one undo step, not one per pointermove.
     record(d.before);
@@ -1032,7 +1124,7 @@ $("#search").addEventListener("keydown", (ev) => {
   selected = next.id;
   closeDrawer();
   render();
-  centerOn(next.id);
+  focusCamera(next.id);
   if (hits.length > 1) setStatus(`${(hits.indexOf(next) + 1).toString()} of ${hits.length}`);
 });
 
@@ -1045,7 +1137,7 @@ for (const list of ["#frontier", "#soon"]) {
     // request to go look at it.
     closeDrawer();
     render();
-    centerOn(selected);
+    focusCamera(selected);
   });
 }
 
@@ -1085,7 +1177,7 @@ $("#add-node").addEventListener("click", () => {
     graph.nodes.push(node);
     selected = node.id;
   });
-  centerOn(node.id);
+  focusCamera(node.id);
   rightPanel.querySelector<HTMLInputElement>("#e-label")?.select();
 });
 
@@ -1106,6 +1198,24 @@ $<HTMLInputElement>("#hide-done").addEventListener("change", (ev) => {
   hideDone = (ev.target as HTMLInputElement).checked;
   render();
 });
+
+$("#depth").addEventListener("click", (ev) => {
+  const raw = (ev.target as HTMLElement).dataset.depth;
+  if (raw === undefined) return;
+  depth = raw === "" ? null : Number(raw);
+  closeDrawer();
+  render();
+  // The drawing is a different size now, so the old camera means nothing.
+  fitToContent();
+  applyView();
+});
+
+function renderDepth(): void {
+  for (const b of $("#depth").querySelectorAll<HTMLElement>("button")) {
+    const value = b.dataset.depth === "" ? null : Number(b.dataset.depth);
+    b.classList.toggle("on", value === depth);
+  }
+}
 
 window.addEventListener("keydown", (ev) => {
   // Undo is bound before the text-field bail-out so that ctrl+Z in the label
