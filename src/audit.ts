@@ -150,7 +150,8 @@ export function typeMix(g: Graph): Record<EdgeType, number> {
 }
 
 if (import.meta.main) {
-  const file = process.argv[2] ?? join(import.meta.dir, "..", "graph.json");
+  const file =
+    process.argv[2] ?? process.env.UNLOCKS_FILE ?? join(import.meta.dir, "..", "graph.json");
   const g = Graph.parse(await Bun.file(file).json());
   const findings = audit(g);
   const mix = typeMix(g);

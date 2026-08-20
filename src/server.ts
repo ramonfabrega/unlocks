@@ -1,10 +1,27 @@
-import { join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import index from "../web/index.html";
 import { commitMessage, describe } from "./log.ts";
 import { Graph, validateGraph } from "./schema.ts";
 
 const ROOT = join(import.meta.dir, "..");
-const FILE = join(ROOT, "graph.json");
+
+/**
+ * Where the account lives. It defaults to graph.json beside the tool, which is
+ * how this started and how it stays for whoever wrote it — but the point of the
+ * env var is that your progression and this tool's source do not have to be the
+ * same git history.
+ *
+ * They shouldn't be. Every save commits, so a fork that keeps its graph in the
+ * tool repo can never pull an improvement without resolving a conflict against
+ * its own account. Point UNLOCKS_FILE at a file in a repo of your own and the
+ * two histories stop touching: commits land next to the graph, not next to the
+ * source.
+ */
+const FILE = resolve(process.env.UNLOCKS_FILE ?? join(ROOT, "graph.json"));
+/** Git runs where the graph lives, which may be another repo entirely. */
+const DATA_DIR = dirname(FILE);
+const NAME = basename(FILE);
+const SEED = join(ROOT, "example.json");
 const PORT = Number(process.env.PORT ?? 5173);
 /**
  * Every interface by default, because using this on a phone means reaching it
@@ -17,14 +34,23 @@ const GIT = process.env.UNLOCKS_NO_GIT !== "1";
 /** Coalesce a flurry of clicks into one commit rather than one per tick. */
 const COMMIT_DEBOUNCE_MS = 15_000;
 
+/** A pointed-at file that isn't there yet is a first run, not a mistake. */
+async function bootstrap(): Promise<void> {
+  if (await Bun.file(FILE).exists()) return;
+  const seed = await Bun.file(SEED).text();
+  await Bun.write(FILE, seed);
+  console.log(`unlocks  ${FILE} did not exist — started you off from example.json\n`);
+}
+
 async function read(): Promise<Graph> {
   const raw = await Bun.file(FILE).json();
   const parsed = Graph.parse(raw);
   const errors = validateGraph(parsed);
-  if (errors.length) throw new Error(`graph.json is not a valid DAG:\n  ${errors.join("\n  ")}`);
+  if (errors.length) throw new Error(`${NAME} is not a valid DAG:\n  ${errors.join("\n  ")}`);
   return parsed;
 }
 
+await bootstrap();
 let graph = await read();
 
 let commitTimer: ReturnType<typeof setTimeout> | null = null;
@@ -39,21 +65,23 @@ async function commit(): Promise<void> {
   commitTimer = null;
   if (!GIT) return;
   try {
-    const inRepo = await Bun.$`git rev-parse --is-inside-work-tree`.cwd(ROOT).quiet().nothrow();
+    const inRepo = await Bun.$`git rev-parse --is-inside-work-tree`.cwd(DATA_DIR).quiet().nothrow();
     if (inRepo.exitCode !== 0) return;
-    const dirty = await Bun.$`git status --porcelain -- graph.json`.cwd(ROOT).quiet().nothrow();
+    const dirty = await Bun.$`git status --porcelain -- ${NAME}`.cwd(DATA_DIR).quiet().nothrow();
     if (!dirty.stdout.toString().trim()) return;
 
     let lines: string[] = [];
-    const head = await Bun.$`git show HEAD:graph.json`.cwd(ROOT).quiet().nothrow();
+    // `HEAD:./name` resolves relative to cwd, so this keeps working when the
+    // graph sits in a subdirectory of its repo rather than at the root.
+    const head = await Bun.$`git show ${`HEAD:./${NAME}`}`.cwd(DATA_DIR).quiet().nothrow();
     if (head.exitCode === 0) {
       const parsed = Graph.safeParse(JSON.parse(head.stdout.toString()));
       if (parsed.success) lines = describe(parsed.data, graph);
     }
 
     const message = commitMessage(lines);
-    await Bun.$`git add graph.json`.cwd(ROOT).quiet();
-    await Bun.$`git commit -m ${message}`.cwd(ROOT).quiet();
+    await Bun.$`git add ${NAME}`.cwd(DATA_DIR).quiet();
+    await Bun.$`git commit -m ${message}`.cwd(DATA_DIR).quiet();
     console.log(`  committed: ${lines[0] ?? "update graph"}`);
   } catch (err) {
     // Never let a git problem cost you an edit — the file is already written.

@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "song-of-elves",
+      "label": "Song of the Elves",
+      "kind": "activity",
+      "lane": "quest",
+      "done": false,
+      "note": "A quest that hard-gates something you want. Tick it and watch what downstream turns from locked to ready.",
+      "wiki": "https://oldschool.runescape.wiki/w/Song_of_the_Elves",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "cg",
+      "label": "Corrupted Gauntlet",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "One grind modelled as one node. Normal Gauntlet is part of learning it, so it does not get its own node until that stops being true.",
+      "wiki": "https://oldschool.runescape.wiki/w/Corrupted_Gauntlet",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "bowfa",
+      "label": "Full crystal + bowfa",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "An item, not a parenthesis. This is the fix for the outline: CG is not what Muspah needs — the bow is, and CG is merely where it comes from.",
+      "wiki": "https://oldschool.runescape.wiki/w/Bow_of_faerdhinen",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "muspah",
+      "label": "Phantom Muspah",
+      "kind": "activity",
+      "lane": "pvm",
+      "done": false,
+      "note": "Killable today, but you said you'd rather have the bow first — so it sits at `possible`, not `ready`. That is the state an outline could never express.",
+      "wiki": "https://oldschool.runescape.wiki/w/Phantom_Muspah",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "venator-bow",
+      "label": "Venator bow",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Venator_bow",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "slayer-grind",
+      "label": "Slayer grind",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "The engine node. Levels hang off this, never off the bosses gated behind them — that is what keeps Slayer from closing a loop the server would refuse to save.",
+      "wiki": "https://oldschool.runescape.wiki/w/Slayer",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "slayer-92",
+      "label": "92 Slayer",
+      "kind": "milestone",
+      "lane": "slayer",
+      "done": false,
+      "note": "A level is a milestone fed by the grind. Wanting gear first cannot change when you reach it.",
+      "wiki": "",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "araxxor",
+      "label": "Araxxor",
+      "kind": "activity",
+      "lane": "slayer",
+      "done": false,
+      "note": "Hard-locked: the game will not let you, no matter how good your gear is.",
+      "wiki": "https://oldschool.runescape.wiki/w/Araxxor",
+      "verify": true,
+      "pin": null
+    },
+    {
+      "id": "cox",
+      "label": "Chambers of Xeric",
+      "kind": "activity",
+      "lane": "raid",
+      "done": false,
+      "note": "",
+      "wiki": "https://oldschool.runescape.wiki/w/Chambers_of_Xeric",
+      "verify": false,
+      "pin": null
+    },
+    {
+      "id": "rigour",
+      "label": "Rigour",
+      "kind": "item",
+      "lane": "pvm",
+      "done": false,
+      "note": "Nothing requires this and it makes almost everything easier — which is exactly what a `boosts` edge is for.",
+      "wiki": "https://oldschool.runescape.wiki/w/Rigour",
+      "verify": false,
+      "pin": null
+    }
+  ],
+  "edges": [
+    { "from": "song-of-elves", "to": "cg", "type": "hard", "note": "", "verify": false },
+    { "from": "cg", "to": "bowfa", "type": "grants", "note": "", "verify": false },
+    {
+      "from": "bowfa",
+      "to": "muspah",
+      "type": "soft",
+      "note": "A want, not a wall.",
+      "verify": false
+    },
+    { "from": "muspah", "to": "venator-bow", "type": "grants", "note": "", "verify": false },
+    { "from": "venator-bow", "to": "slayer-grind", "type": "soft", "note": "", "verify": false },
+    { "from": "slayer-grind", "to": "slayer-92", "type": "grants", "note": "", "verify": false },
+    { "from": "slayer-92", "to": "araxxor", "type": "hard", "note": "", "verify": true },
+    { "from": "bowfa", "to": "cox", "type": "soft", "note": "", "verify": false },
+    { "from": "cox", "to": "rigour", "type": "grants", "note": "", "verify": false },
+    {
+      "from": "rigour",
+      "to": "slayer-grind",
+      "type": "boosts",
+      "note": "Points backwards, and that is fine — a boost makes no claim about order.",
+      "verify": false
+    }
+  ]
+}

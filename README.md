@@ -210,6 +210,38 @@ still.
 Commits are debounced 15s and flushed when the tab closes. `UNLOCKS_NO_GIT=1`
 turns them off.
 
+## Running it on your own account
+
+`graph.json` defaults to sitting beside the tool, which is where it started and
+where it stays for whoever wrote it. **You want yours somewhere else.**
+
+Because every save commits, a clone that keeps its graph in the tool repo can
+never pull an improvement without resolving a merge conflict against its own
+progression. Point `UNLOCKS_FILE` at a file in a repo of your own and the two
+histories stop touching — commits land next to the graph, not next to the source:
+
+```
+mkdir ~/rs-account && cd ~/rs-account && git init
+cd /path/to/unlocks
+UNLOCKS_FILE=~/rs-account/graph.json bun run graph
+```
+
+The file doesn't have to exist. On first run you get a copy of `example.json` —
+ten nodes that exercise every status and all four edge types, with notes
+explaining why each one is modelled the way it is. Rename things and start
+deleting.
+
+After that, `git pull` in the tool repo is always clean, and `git log` in your
+account repo is your progression and nothing else:
+
+```
+done: Corrupted Gauntlet, Full crystal + bowfa
+
+edges: Rigour boosts Chambers of Xeric
+```
+
+`bun run audit` reads the same variable.
+
 ## Seed data
 
 Transcribed from the original notepad, with the implied item and level nodes
