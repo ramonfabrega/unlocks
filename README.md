@@ -242,6 +242,34 @@ edges: Rigour boosts Chambers of Xeric
 
 `bun run audit` reads the same variable.
 
+## Without a server
+
+```
+bun run build     # -> dist/, 46 KB total
+```
+
+Serve `dist/` anywhere — a CDN, a static host, a folder. There is **no build
+flag**: the client asks at startup whether `/api/graph` answers, and falls back
+to `localStorage` when nothing does. So the same bundle is the one `bun run
+graph` serves, and there is no way to ship a build wired to the wrong storage
+because a flag was forgotten.
+
+|                | with a server | static |
+| -------------- | ------------- | ------ |
+| the graph      | `graph.json`  | `localStorage` |
+| history        | a git commit per save | **none** |
+| getting it out | it's already a file | **export** |
+| survives clearing site data | yes | **no** |
+
+The static build is how someone tries this in thirty seconds, and how it works
+on a phone with nothing running. It is not where an account should live long
+term — no git means no progression log, which is half the point. **Export
+early.** The banner in the sidebar says so when no server answered.
+
+Import replaces the whole graph, checks it first, and is undoable like any other
+edit. A file with a dangling edge or a cycle is refused with the reason, and the
+graph you had stays put.
+
 ## Seed data
 
 Transcribed from the original notepad, with the implied item and level nodes

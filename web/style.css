@@ -762,3 +762,24 @@ button.primary {
     line-height: 1;
   }
 }
+
+/* ---------------------------------------------------------------- storage */
+
+.io {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.io button {
+  flex: 1;
+}
+
+/* Only meaningful with no server behind the page, where this copy is the only
+   copy. body.local is set once the startup probe comes back empty. */
+.local-only {
+  display: none;
+}
+body.local .local-only {
+  display: block;
+  color: var(--ready);
+}
