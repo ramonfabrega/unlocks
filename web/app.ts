@@ -7,7 +7,6 @@ import {
   fitLabel,
   layout,
   leverage,
-  NODE_H,
   type Placed,
   type Status,
   statuses,
@@ -35,7 +34,7 @@ const hidden = new Set<Lane>();
 let query = "";
 let groupLanes = false;
 let hideDone = false;
-/** When set, everything outside this node's ancestry is dimmed. */
+/** When set, everything unrelated to this node is dimmed. */
 let focus: string | null = null;
 const view = { x: 60, y: 40, k: 0.9 };
 
@@ -59,24 +58,100 @@ function setStatus(text: string, cls = ""): void {
 const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
 const closeDrawer = () => document.body.classList.remove("drawer-open");
 
+// ---------------------------------------------------------------------- history
+
+/**
+ * Whole-graph snapshots. The graph is a few tens of kilobytes of JSON and edits
+ * are hand-speed, so there is nothing to gain from a command log and quite a lot
+ * to lose — every mutation would have to describe and invert itself, and the one
+ * that forgot would corrupt the stack silently.
+ *
+ * This is also what makes `delete node` safe to leave un-confirmed. A dialog on
+ * every delete taxes the common case to guard the rare one; ctrl+Z costs nothing
+ * until you need it.
+ */
+const past: string[] = [];
+const future: string[] = [];
+const HISTORY_MAX = 80;
+
+const snapshot = (): string => JSON.stringify(graph);
+
+function record(before: string): void {
+  if (before === snapshot()) return; // nothing actually changed
+  past.push(before);
+  if (past.length > HISTORY_MAX) past.shift();
+  future.length = 0;
+}
+
+/** Snapshot, mutate, record, persist, redraw — the shape of every edit. */
+function edit(mutate: () => void): void {
+  const before = snapshot();
+  mutate();
+  record(before);
+  save();
+  render();
+}
+
+function step(from: string[], to: string[], what: string): void {
+  const target = from.pop();
+  if (target === undefined) {
+    setStatus(`nothing to ${what}`);
+    return;
+  }
+  to.push(snapshot());
+  graph = JSON.parse(target) as Graph;
+  // Selection and focus can point at something that no longer exists; the
+  // editor and the dimming both cope with a dangling id, so leave them be
+  // rather than clearing what is usually still valid. The graph visibly
+  // changing back is the feedback — no status message needed.
+  save();
+  render();
+}
+
+const undo = () => step(past, future, "undo");
+const redo = () => step(future, past, "redo");
+
 // ---------------------------------------------------------------------- io
 
 async function load(): Promise<void> {
   const res = await fetch("/api/graph");
   graph = await res.json();
-  fitToContent();
+
+  const restored = loadSession();
+  // A link beats a remembered camera: following #zulrah should land on Zulrah,
+  // not wherever this browser happened to be last night.
+  const linked = hashTarget();
+  if (linked) selected = linked;
+  // A remembered selection can name a node deleted since; drop it rather than
+  // opening an empty panel.
+  if (selected && !nodeById(selected)) selected = null;
+  if (focus && !nodeById(focus)) focus = null;
+
+  // The toggles are read from the DOM, so a restored session has to be pushed
+  // back into it or the checkbox and the drawing disagree.
+  $<HTMLInputElement>("#group-lanes").checked = groupLanes;
+  $<HTMLInputElement>("#hide-done").checked = hideDone;
+
+  if (!restored) fitToContent();
   render();
+  if (linked) centerOn(linked);
+  syncHash();
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let inFlight = false;
+/** Set when an edit lands mid-request; the in-flight save re-runs on completion. */
+let resaveWanted = false;
 
 function save(): void {
   setStatus("saving…", "dirty");
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
+    // Re-entering save() here used to reset the whole 450ms debounce, so a long
+    // request turned into a spin that only stopped when it landed. Flag it and
+    // let the finally block fire once instead.
     if (inFlight) {
-      save();
+      resaveWanted = true;
       return;
     }
     inFlight = true;
@@ -97,9 +172,82 @@ function save(): void {
       console.error(err);
     } finally {
       inFlight = false;
+      if (resaveWanted) {
+        resaveWanted = false;
+        save();
+      }
     }
   }, 450);
 }
+
+// ---------------------------------------------------------------------- session
+
+/**
+ * Everything here is about where you were looking, never about the graph — the
+ * graph lives on the server and in git. Losing it costs nothing; not having it
+ * meant every reload dumped you back at the far left of a 4000px drawing with
+ * your filters cleared.
+ */
+const SESSION_KEY = "unlocks:session";
+
+let sessionTimer: ReturnType<typeof setTimeout> | null = null;
+function saveSession(): void {
+  // Panning fires this per frame, so coalesce.
+  if (sessionTimer) clearTimeout(sessionTimer);
+  sessionTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ view, hidden: [...hidden], hideDone, groupLanes, selected, focus }),
+      );
+    } catch {
+      // Private browsing, quota, a disabled store — none of it is worth an error.
+    }
+  }, 250);
+}
+
+/** Returns whether a camera was restored, so load() knows to skip the auto-fit. */
+function loadSession(): boolean {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(SESSION_KEY);
+  } catch {
+    return false;
+  }
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    if (Array.isArray(s.hidden)) for (const l of s.hidden) hidden.add(l as Lane);
+    hideDone = !!s.hideDone;
+    groupLanes = !!s.groupLanes;
+    selected = typeof s.selected === "string" ? s.selected : null;
+    focus = typeof s.focus === "string" ? s.focus : null;
+    if (s.view && Number.isFinite(s.view.k)) {
+      view.x = s.view.x;
+      view.y = s.view.y;
+      view.k = s.view.k;
+      return true;
+    }
+  } catch {
+    // A stale or hand-mangled entry just means a fresh session.
+  }
+  return false;
+}
+
+/**
+ * The URL is the shareable half of the same idea: #node-id opens the graph with
+ * that node selected and centred, which is how you point someone at one.
+ */
+function syncHash(): void {
+  const want = selected ? `#${selected}` : "";
+  if (location.hash === want) return;
+  history.replaceState(null, "", want || location.pathname + location.search);
+}
+
+const hashTarget = (): string | null => {
+  const id = decodeURIComponent(location.hash.slice(1));
+  return id && nodeById(id) ? id : null;
+};
 
 // ---------------------------------------------------------------------- helpers
 
@@ -116,6 +264,30 @@ function slug(label: string): string {
   let i = 2;
   while (nodeById(`${base}-${i}`)) i++;
   return `${base}-${i}`;
+}
+
+/**
+ * Ids are permanent — edges reference them and the commit log is read against
+ * them — but `+ node` has to mint one before you have typed a name, so it used
+ * to slug the placeholder. A quarter of the graph ended up called `new-node-11`.
+ *
+ * A fresh node gets a marked id instead, and takes its real one the first time
+ * you name it. After that the id is fixed, exactly as before: renaming Zulrah
+ * does not renumber it.
+ */
+/** slug() collapses runs of punctuation, so it can never mint a double dash. */
+const PROVISIONAL = "new--";
+const provisionalId = (): string => PROVISIONAL + Date.now().toString(36);
+
+function adoptLabelAsId(n: GraphNode): void {
+  if (!n.id.startsWith(PROVISIONAL)) return;
+  // Only safe while nothing points at the old id. Linking before naming is rare
+  // but it must not silently break the edge.
+  if (graph.edges.some((e) => e.from === n.id || e.to === n.id)) return;
+  const id = slug(n.label);
+  if (selected === n.id) selected = id;
+  if (focus === n.id) focus = id;
+  n.id = id;
 }
 
 /** A -> B closes a loop exactly when A is already downstream of B. */
@@ -156,7 +328,12 @@ function render(): void {
   const vg = visibleGraph();
   const { placed, bends } = layout(vg, { groupLanes });
 
-  const litNodes = focus ? new Set([focus, ...ancestors(focus, adj)]) : null;
+  // Both directions: what you must get through to reach it, AND what it opens
+  // up. Ancestors alone answered "what do I need", which is only half of why you
+  // point at a node — the other half is "so what if I do it".
+  const litNodes = focus
+    ? new Set([focus, ...ancestors(focus, adj), ...descendants(focus, adj)])
+    : null;
 
   renderEdges(vg, placed, bends, litNodes);
   renderNodes(vg, placed, status, litNodes);
@@ -165,6 +342,7 @@ function render(): void {
   renderStats(status);
   renderEditor(adj, annotations(graph), status, lev);
   applyView();
+  syncHash();
 }
 
 type Pt = { x: number; y: number };
@@ -398,7 +576,7 @@ function renderEditor(
     `<div class="row">` +
     `<button id="e-done" type="button" class="${n.done ? "" : "primary"}">` +
     `${n.done ? "mark not done" : "mark done"}</button>` +
-    `<button id="e-focus" type="button">${focus === n.id ? "clear path" : "show path"}</button>` +
+    `<button id="e-focus" type="button">${focus === n.id ? "clear trace" : "trace"}</button>` +
     `</div>` +
     `<div class="field"><label>label</label><input id="e-label" type="text" value="${esc(n.label)}" /></div>` +
     `<div class="row">` +
@@ -439,15 +617,12 @@ function renderEditor(
 function wireEditor(n: GraphNode): void {
   const onEdit = (sel: string, ev: "input" | "change", fn: (v: string) => void) => {
     const el = rightPanel.querySelector<HTMLInputElement | HTMLSelectElement>(sel);
-    el?.addEventListener(ev, () => {
-      fn(el.value);
-      save();
-      render();
-    });
+    el?.addEventListener(ev, () => edit(() => fn(el.value)));
   };
 
   onEdit("#e-label", "change", (v) => {
     n.label = v.trim() || n.label;
+    adoptLabelAsId(n);
   });
   onEdit("#e-kind", "change", (v) => {
     n.kind = v as NodeKind;
@@ -469,34 +644,35 @@ function wireEditor(n: GraphNode): void {
     selected = null;
     render();
   });
-  click("#e-done", () => {
-    n.done = !n.done;
-    save();
-    render();
-  });
+  click("#e-done", () =>
+    edit(() => {
+      n.done = !n.done;
+    }),
+  );
   click("#e-focus", () => {
     focus = focus === n.id ? null : n.id;
     render();
   });
-  click("#e-verified", () => {
-    n.verify = false;
-    save();
-    render();
-  });
-  click("#e-unpin", () => {
-    n.pin = null;
-    save();
-    render();
-  });
+  click("#e-verified", () =>
+    edit(() => {
+      n.verify = false;
+    }),
+  );
+  click("#e-unpin", () =>
+    edit(() => {
+      n.pin = null;
+    }),
+  );
   click("#e-wikiopen", () => window.open(n.wiki, "_blank", "noopener"));
-  click("#e-delete", () => {
-    graph.nodes = graph.nodes.filter((x) => x.id !== n.id);
-    graph.edges = graph.edges.filter((e) => e.from !== n.id && e.to !== n.id);
-    if (focus === n.id) focus = null;
-    selected = null;
-    save();
-    render();
-  });
+  // No confirm dialog on purpose: ctrl+Z brings it back, edges and all.
+  click("#e-delete", () =>
+    edit(() => {
+      graph.nodes = graph.nodes.filter((x) => x.id !== n.id);
+      graph.edges = graph.edges.filter((e) => e.from !== n.id && e.to !== n.id);
+      if (focus === n.id) focus = null;
+      selected = null;
+    }),
+  );
 
   for (const dep of rightPanel.querySelectorAll<HTMLElement>(".dep")) {
     const from = dep.dataset.from ?? "";
@@ -518,14 +694,14 @@ function wireEditor(n: GraphNode): void {
         setStatus(`${labelOf(edge.to)} already leads to ${labelOf(edge.from)}`, "error");
         return;
       }
-      edge.type = next;
-      save();
-      render();
+      edit(() => {
+        edge.type = next;
+      });
     });
     dep.querySelector(".x")?.addEventListener("click", () => {
-      graph.edges = graph.edges.filter((e) => !(e.from === from && e.to === to));
-      save();
-      render();
+      edit(() => {
+        graph.edges = graph.edges.filter((e) => !(e.from === from && e.to === to));
+      });
     });
   }
 }
@@ -534,6 +710,7 @@ function wireEditor(n: GraphNode): void {
 
 function applyView(): void {
   gViewport.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
+  saveSession();
 }
 
 function toWorld(clientX: number, clientY: number): { x: number; y: number } {
@@ -600,6 +777,8 @@ type Drag =
       pins: boolean;
       ox: number;
       oy: number;
+      /** Graph as it stood before the drag, so the whole gesture is one undo. */
+      before: string;
     }
   | { mode: "link"; id: string; x1: number; y1: number };
 
@@ -669,6 +848,7 @@ svg.addEventListener("pointerdown", (ev) => {
       pins: ev.pointerType === "mouse",
       ox: view.x,
       oy: view.y,
+      before: snapshot(),
     };
     ev.preventDefault();
     return;
@@ -770,11 +950,11 @@ function endPointer(ev: PointerEvent): void {
       setStatus(`${labelOf(to)} already leads to ${labelOf(d.id)}`, "error");
       return;
     }
-    // Default to "soft" — most of what you track is preference, not a game lock.
-    graph.edges.push({ from: d.id, to, type: "soft", note: "", verify: false });
-    selected = to;
-    save();
-    render();
+    edit(() => {
+      // Default to "soft" — most of what you track is preference, not a game lock.
+      graph.edges.push({ from: d.id, to, type: "soft", note: "", verify: false });
+      selected = to;
+    });
     return;
   }
 
@@ -782,6 +962,8 @@ function endPointer(ev: PointerEvent): void {
     selected = selected === d.id ? null : d.id;
     render();
   } else if (d.pins) {
+    // The whole drag is one undo step, not one per pointermove.
+    record(d.before);
     save(); // a touch drag only moved the camera — nothing to persist
   }
 }
@@ -794,9 +976,9 @@ svg.addEventListener("dblclick", (ev) => {
   if (!nodeEl) return;
   const n = nodeById(nodeEl.dataset.id as string);
   if (!n) return;
-  n.done = !n.done;
-  save();
-  render();
+  edit(() => {
+    n.done = !n.done;
+  });
 });
 
 svg.addEventListener(
@@ -820,6 +1002,38 @@ svg.addEventListener(
 $("#search").addEventListener("input", (ev) => {
   query = (ev.target as HTMLInputElement).value.trim().toLowerCase();
   render();
+});
+
+/**
+ * Searching used to dim the misses and stop there, which on a 4000px drawing
+ * usually meant the one node you were looking for was off-screen — you got told
+ * it exists and then had to go find it by hand. Enter walks the matches.
+ */
+$("#search").addEventListener("keydown", (ev) => {
+  const key = (ev as KeyboardEvent).key;
+  if (key === "Escape") {
+    ($("#search") as HTMLInputElement).value = "";
+    query = "";
+    render();
+    return;
+  }
+  if (key !== "Enter" || !query) return;
+  ev.preventDefault();
+
+  const hits = graph.nodes.filter((n) => isVisible(n) && matchesQuery(n));
+  if (!hits.length) {
+    setStatus(`no match for “${query}”`, "error");
+    return;
+  }
+  // Shift+Enter goes back, so a query with several hits is walkable both ways.
+  const at = hits.findIndex((n) => n.id === selected);
+  const step = (ev as KeyboardEvent).shiftKey ? -1 : 1;
+  const next = hits[(at + step + hits.length * 2) % hits.length] as GraphNode;
+  selected = next.id;
+  closeDrawer();
+  render();
+  centerOn(next.id);
+  if (hits.length > 1) setStatus(`${(hits.indexOf(next) + 1).toString()} of ${hits.length}`);
 });
 
 for (const list of ["#frontier", "#soon"]) {
@@ -852,10 +1066,8 @@ $("#lanes").addEventListener("click", (ev) => {
 });
 
 $("#add-node").addEventListener("click", () => {
-  const r = svg.getBoundingClientRect();
-  const c = toWorld(r.left + r.width / 2, r.top + r.height / 2);
   const node: GraphNode = {
-    id: slug("new node"),
+    id: provisionalId(),
     label: "New node",
     kind: "activity",
     lane: "pvm",
@@ -863,20 +1075,26 @@ $("#add-node").addEventListener("click", () => {
     note: "",
     wiki: "",
     verify: false,
-    pin: { x: Math.round(c.x), y: Math.round(c.y - NODE_H / 2) },
+    // Deliberately unpinned. Dropping it at the viewport centre pinned it out of
+    // the auto-layout on creation — the exact failure mode pinning is warned
+    // about everywhere else — so it lands in the layout like everything else and
+    // the camera goes to it instead.
+    pin: null,
   };
-  graph.nodes.push(node);
-  selected = node.id;
-  save();
-  render();
+  edit(() => {
+    graph.nodes.push(node);
+    selected = node.id;
+  });
+  centerOn(node.id);
   rightPanel.querySelector<HTMLInputElement>("#e-label")?.select();
 });
 
 $("#relayout").addEventListener("click", () => {
-  for (const n of graph.nodes) n.pin = null;
-  save();
+  edit(() => {
+    for (const n of graph.nodes) n.pin = null;
+  });
   fitToContent();
-  render();
+  applyView();
 });
 
 $<HTMLInputElement>("#group-lanes").addEventListener("change", (ev) => {
@@ -890,8 +1108,25 @@ $<HTMLInputElement>("#hide-done").addEventListener("change", (ev) => {
 });
 
 window.addEventListener("keydown", (ev) => {
+  // Undo is bound before the text-field bail-out so that ctrl+Z in the label
+  // box still undoes the graph rather than only the input's own edit history —
+  // which would otherwise silently diverge from what you can see.
+  const accel = ev.metaKey || ev.ctrlKey;
+  if (accel && ev.key.toLowerCase() === "z") {
+    ev.preventDefault();
+    if (ev.shiftKey) redo();
+    else undo();
+    return;
+  }
+  if (accel && ev.key.toLowerCase() === "y") {
+    ev.preventDefault();
+    redo();
+    return;
+  }
+
   const tag = (ev.target as HTMLElement).tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
   if (ev.key === "Escape") {
     selected = null;
     focus = null;
@@ -900,15 +1135,18 @@ window.addEventListener("keydown", (ev) => {
   if (ev.key === " " && selected) {
     ev.preventDefault();
     const n = nodeById(selected);
-    if (n) {
-      n.done = !n.done;
-      save();
-      render();
-    }
+    if (n)
+      edit(() => {
+        n.done = !n.done;
+      });
   }
   if (ev.key === "f" && selected) {
     focus = focus === selected ? null : selected;
     render();
+  }
+  if (ev.key === "/") {
+    ev.preventDefault();
+    $<HTMLInputElement>("#search").focus();
   }
 });
 

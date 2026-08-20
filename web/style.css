@@ -357,6 +357,13 @@ button.primary {
   color: var(--faint);
   pointer-events: none;
 }
+.hud kbd {
+  font: inherit;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+}
 
 /* nodes */
 .node {
@@ -446,10 +453,19 @@ button.primary {
 .node .handle {
   cursor: crosshair;
 }
-/* Generous invisible grab area — a miss pans the canvas, which is annoying. */
+/* Generous invisible grab area — a miss pans the canvas, which is annoying.
+   But it is only live while the knob is actually visible: a transparent fill
+   still takes pointer events, so on touch (where :hover never fires) this was a
+   13px invisible target on the right edge of every node that started a link
+   drag instead of selecting. Select the node first, then its handle appears. */
 .node .handle.hit {
   fill: transparent;
   stroke: none;
+  pointer-events: none;
+}
+.node:hover .handle.hit,
+.node.sel .handle.hit {
+  pointer-events: all;
 }
 .node .handle.knob {
   fill: var(--bg);
