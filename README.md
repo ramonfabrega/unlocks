@@ -100,15 +100,31 @@ Everything is in the UI — you never open `graph.json` by hand.
 | | desktop | touch |
 | --- | --- | --- |
 | add a node | `+ node` | `☰` → `+ node` |
-| link two nodes | drag the `◦` handle onto the target (defaults to `soft`) | same, drag the handle |
+| link two nodes | select it, then drag the `◦` handle onto the target (defaults to `soft`) | same |
 | change an edge type | the dropdown in **needs** / **unlocks** | same |
 | tick a node | double-click, or `space` when selected | select it → **mark done** |
-| trace a path | select → **show path**, or `f` | select → **show path** |
+| trace what connects | select → **trace**, or `f` | select → **trace** |
+| find something | `/`, then `enter` to jump between matches (`shift+enter` back) | type in `☰` |
+| undo / redo | `ctrl+Z` / `ctrl+shift+Z` — works inside text fields too | — |
 | pan | drag the canvas | one-finger drag |
 | zoom | scroll | two-finger pinch |
 | reposition | drag it — that pins it; **unpin all** restores auto-layout | same |
-| deselect / clear path | `escape` | `×` on the sheet |
+| deselect / clear trace | `escape` | `×` on the sheet |
 | declutter | **hide done**, and the lane chips | same, via `☰` |
+
+**trace** lights both directions at once — everything you must get through to
+reach the node, and everything it opens up. Ancestors alone answered "what do I
+need", which is only half of why you point at something.
+
+**Undo covers every edit**, including a delete and its edges, which is why
+`delete node` has no confirmation dialog. It keeps 80 steps and does not survive
+a reload — for anything older, the graph is in git.
+
+**Where you were looking is remembered** across reloads: camera, selection, lane
+filters, **hide done**. None of it is graph data, so it lives in `localStorage`
+and never reaches the server. Selecting a node also puts it in the URL, so
+`…/#zulrah` opens the graph focused on Zulrah — that's how you point someone at
+one.
 
 **hide done** removes completed nodes from the picture and recompacts the
 layout around what's left. Status and leverage keep being computed from the
@@ -138,6 +154,10 @@ every render. The one exception is pinning:
   before the cause was obvious.
 
 If a node is somewhere strange, look for the pin dot first.
+
+A new node is **not** pinned — it drops into the auto-layout like everything
+else and the camera goes to it. `+ node` used to pin it wherever the viewport
+happened to be, which is the failure mode this whole section warns about.
 
 ## On a phone
 
