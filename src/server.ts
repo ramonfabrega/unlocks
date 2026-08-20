@@ -1,10 +1,18 @@
 import { join } from "node:path";
 import index from "../web/index.html";
+import { commitMessage, describe } from "./log.ts";
 import { Graph, validateGraph } from "./schema.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const FILE = join(ROOT, "graph.json");
 const PORT = Number(process.env.PORT ?? 5173);
+/**
+ * Every interface by default, because using this on a phone means reaching it
+ * over the LAN. That is a real, if small, exposure: there is no auth, so anyone
+ * on the same network can PUT the graph. `HOST=127.0.0.1` closes it when you are
+ * only ever on the laptop, and the banner says which one you got.
+ */
+const HOST = process.env.HOST ?? "0.0.0.0";
 const GIT = process.env.UNLOCKS_NO_GIT !== "1";
 /** Coalesce a flurry of clicks into one commit rather than one per tick. */
 const COMMIT_DEBOUNCE_MS = 15_000;
@@ -18,54 +26,6 @@ async function read(): Promise<Graph> {
 }
 
 let graph = await read();
-
-/**
- * Human-readable commit messages, built by diffing what actually changed.
- * The point of putting graph.json in git is that `git log` becomes a
- * progression log — "3 nodes done: cg, bowfa, muspah" is worth reading back in
- * six months; "update graph.json" is not.
- */
-function describe(before: Graph, after: Graph): string[] {
-  const lines: string[] = [];
-  const wasDone = new Map(before.nodes.map((n) => [n.id, n.done]));
-  const label = new Map(after.nodes.map((n) => [n.id, n.label]));
-
-  const done: string[] = [];
-  const undone: string[] = [];
-  for (const n of after.nodes) {
-    const prev = wasDone.get(n.id);
-    if (prev === undefined || prev === n.done) continue;
-    (n.done ? done : undone).push(n.label);
-  }
-  if (done.length) lines.push(`done: ${done.join(", ")}`);
-  if (undone.length) lines.push(`un-done: ${undone.join(", ")}`);
-
-  const beforeIds = new Set(before.nodes.map((n) => n.id));
-  const added = after.nodes.filter((n) => !beforeIds.has(n.id)).map((n) => n.label);
-  const afterIds = new Set(after.nodes.map((n) => n.id));
-  const removed = before.nodes.filter((n) => !afterIds.has(n.id)).map((n) => n.label);
-  if (added.length)
-    lines.push(`+${added.length} node${added.length > 1 ? "s" : ""}: ${added.join(", ")}`);
-  if (removed.length)
-    lines.push(`-${removed.length} node${removed.length > 1 ? "s" : ""}: ${removed.join(", ")}`);
-
-  const key = (e: { from: string; to: string }) => `${e.from}->${e.to}`;
-  const beforeEdges = new Map(before.edges.map((e) => [key(e), e.type]));
-  const afterEdges = new Map(after.edges.map((e) => [key(e), e.type]));
-  const name = (id: string) => label.get(id) ?? id;
-  const edgeAdds: string[] = [];
-  for (const [k, type] of afterEdges) {
-    const prev = beforeEdges.get(k);
-    const [from = "", to = ""] = k.split("->");
-    if (prev === undefined) edgeAdds.push(`${name(from)} ${type} ${name(to)}`);
-    else if (prev !== type) edgeAdds.push(`${name(from)} ${prev}->${type} ${name(to)}`);
-  }
-  const edgeDrops = [...beforeEdges.keys()].filter((k) => !afterEdges.has(k)).length;
-  if (edgeAdds.length) lines.push(`edges: ${edgeAdds.join("; ")}`);
-  if (edgeDrops) lines.push(`removed ${edgeDrops} edge${edgeDrops > 1 ? "s" : ""}`);
-
-  return lines;
-}
 
 let commitTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -91,12 +51,10 @@ async function commit(): Promise<void> {
       if (parsed.success) lines = describe(parsed.data, graph);
     }
 
-    const subject = lines[0] ?? "update graph";
-    const body = lines.slice(1).join("\n");
-    const message = body ? `${subject}\n\n${body}` : subject;
+    const message = commitMessage(lines);
     await Bun.$`git add graph.json`.cwd(ROOT).quiet();
     await Bun.$`git commit -m ${message}`.cwd(ROOT).quiet();
-    console.log(`  committed: ${subject}`);
+    console.log(`  committed: ${lines[0] ?? "update graph"}`);
   } catch (err) {
     // Never let a git problem cost you an edit — the file is already written.
     console.warn(`  git commit skipped: ${err instanceof Error ? err.message : err}`);
@@ -111,6 +69,7 @@ function scheduleCommit(): void {
 
 const server = Bun.serve({
   port: PORT,
+  hostname: HOST,
   // Off by default: Bun's dev overlay covers the app whenever a browser
   // extension throws on the page, which has nothing to do with this code.
   // `bun run dev` turns it back on when you're actually editing source.
@@ -173,4 +132,7 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
 console.log(`unlocks  ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
 console.log(`         ${FILE}`);
 console.log(`         git auto-commit ${GIT ? "on" : "off (UNLOCKS_NO_GIT=1)"}`);
+console.log(
+  `         ${HOST === "0.0.0.0" ? "reachable on your LAN, no auth (HOST=127.0.0.1 to close)" : `bound to ${HOST}`}`,
+);
 console.log(`\n  ->  ${server.url}\n`);

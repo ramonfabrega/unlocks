@@ -6,6 +6,7 @@
   "scripts": {
     "graph": "bun src/server.ts",
     "start": "bun src/server.ts",
+    "audit": "bun src/audit.ts",
     "dev": "UNLOCKS_DEV=1 bun --hot src/server.ts",
     "typecheck": "bun tsc --noEmit",
     "check": "biome check --write",
