@@ -12,18 +12,20 @@ import {
   statuses,
 } from "../src/derive.ts";
 import {
+  EDGE_TYPES,
   type EdgeType,
   type Graph,
   type GraphEdge,
   type GraphNode,
   isStructural,
+  LANES,
   type Lane,
+  NODE_KINDS,
   type NodeKind,
-} from "../src/schema.ts";
+  validateGraph,
+} from "../src/model.ts";
 
-const LANES: Lane[] = ["quest", "pvm", "raid", "slayer", "skilling"];
-const KINDS: NodeKind[] = ["activity", "item", "milestone"];
-const EDGE_TYPES: EdgeType[] = ["grants", "hard", "soft", "boosts"];
+const KINDS = NODE_KINDS;
 const KIND_TAG: Record<NodeKind, string> = { activity: "", item: "item", milestone: "lvl" };
 
 // ---------------------------------------------------------------------- state

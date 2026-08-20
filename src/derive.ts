@@ -4,7 +4,7 @@ import {
   type GraphNode,
   isStructural,
   type NodeKind,
-} from "./schema.ts";
+} from "./model.ts";
 
 /**
  * Nothing here is stored. Status, leverage and position are all recomputed from
