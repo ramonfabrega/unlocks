@@ -1,3 +1,4 @@
+import example from "../example.json";
 import {
   adjacency,
   ancestors,
@@ -12,6 +13,7 @@ import {
   statuses,
 } from "../src/derive.ts";
 import {
+  coerceGraph,
   EDGE_TYPES,
   type EdgeType,
   type Graph,
@@ -22,7 +24,6 @@ import {
   type Lane,
   NODE_KINDS,
   type NodeKind,
-  validateGraph,
 } from "../src/model.ts";
 
 const KINDS = NODE_KINDS;
@@ -117,9 +118,43 @@ const redo = () => step(future, past, "redo");
 
 // ---------------------------------------------------------------------- io
 
+/**
+ * Where the graph lives, decided at startup by asking whether a server answers.
+ *
+ * With one, nothing changes: it owns the file and the git history. Without one —
+ * the same bundle opened from a static host — the graph lives in localStorage
+ * and the export button is the way out. One build serves both, because the probe
+ * is cheaper and harder to get wrong than a build flag, and because the failure
+ * mode of a wrong flag is silently writing to the wrong place.
+ */
+type Backend = "server" | "local";
+let backend: Backend = "server";
+const LOCAL_KEY = "unlocks:graph";
+
+function readLocal(): Graph | null {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (!raw) return null;
+    const parsed = coerceGraph(JSON.parse(raw));
+    return "graph" in parsed ? parsed.graph : null;
+  } catch {
+    return null;
+  }
+}
+
 async function load(): Promise<void> {
-  const res = await fetch("/api/graph");
-  graph = await res.json();
+  const fromServer = await fetch("/api/graph")
+    .then((r) => (r.ok ? (r.json() as Promise<Graph>) : null))
+    .catch(() => null);
+
+  if (fromServer) {
+    backend = "server";
+    graph = fromServer;
+  } else {
+    backend = "local";
+    graph = readLocal() ?? (example as Graph);
+    document.body.classList.add("local");
+  }
 
   const restored = loadSession();
   // A link beats a remembered camera: following #zulrah should land on Zulrah,
@@ -151,6 +186,16 @@ function save(): void {
   setStatus("saving…", "dirty");
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
+    if (backend === "local") {
+      try {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(graph));
+        setStatus("saved locally");
+      } catch {
+        setStatus("could not save — storage full?", "error");
+      }
+      return;
+    }
+
     // Re-entering save() here used to reset the whole 450ms debounce, so a long
     // request turned into a spin that only stopped when it landed. Flag it and
     // let the finally block fire once instead.
@@ -1201,6 +1246,53 @@ $<HTMLInputElement>("#hide-done").addEventListener("change", (ev) => {
   render();
 });
 
+/**
+ * With a server these are a convenience. Without one they are the only way data
+ * gets in or out of the browser, so they are not optional chrome.
+ */
+$("#export").addEventListener("click", () => {
+  const blob = new Blob([`${JSON.stringify(graph, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "graph.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+$("#import").addEventListener("click", () => $<HTMLInputElement>("#import-file").click());
+
+$("#import-file").addEventListener("change", async (ev) => {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  // Let the same file be picked twice in a row, which otherwise fires nothing.
+  input.value = "";
+  if (!file) return;
+
+  let parsed: ReturnType<typeof coerceGraph>;
+  try {
+    parsed = coerceGraph(JSON.parse(await file.text()));
+  } catch {
+    setStatus(`${file.name} is not JSON`, "error");
+    return;
+  }
+  if ("errors" in parsed) {
+    setStatus(`${file.name}: ${parsed.errors[0]}`, "error");
+    console.error(parsed.errors);
+    return;
+  }
+
+  // Replacing everything is exactly the kind of thing undo is for, so it goes
+  // through edit() like any other change rather than asking first.
+  edit(() => {
+    graph = parsed.graph;
+    if (selected && !nodeById(selected)) selected = null;
+    if (focus && !nodeById(focus)) focus = null;
+  });
+  fitToContent();
+  applyView();
+});
+
 $("#depth").addEventListener("click", (ev) => {
   const raw = (ev.target as HTMLElement).dataset.depth;
   if (raw === undefined) return;
@@ -1264,7 +1356,7 @@ window.addEventListener("keydown", (ev) => {
 
 /** Flush the server's debounced commit rather than losing it to a closed tab. */
 window.addEventListener("beforeunload", () => {
-  navigator.sendBeacon("/api/commit");
+  if (backend === "server") navigator.sendBeacon("/api/commit");
 });
 
 function esc(s: string): string {

@@ -87,6 +87,83 @@ export interface Graph {
   edges: GraphEdge[];
 }
 
+/**
+ * Read an untrusted value into a Graph, filling in the optional fields, or say
+ * why not. zod remains the authority everywhere bytes cross a real boundary —
+ * this exists for the one place that has no server behind it, the browser's
+ * import button, where pulling a parser in for a file you pick by hand would
+ * cost more than the check is worth.
+ *
+ * The defaults here must match schema.ts exactly. A test runs both over the same
+ * inputs and asserts they agree, so they cannot drift apart unnoticed.
+ */
+export function coerceGraph(input: unknown): { graph: Graph } | { errors: string[] } {
+  const errors: string[] = [];
+  const obj = input as Record<string, unknown> | null;
+  if (!obj || typeof obj !== "object") return { errors: ["not an object"] };
+  if (obj.version !== 1) errors.push(`unsupported version: ${JSON.stringify(obj.version)}`);
+  if (!Array.isArray(obj.nodes)) errors.push("nodes is not an array");
+  if (!Array.isArray(obj.edges)) errors.push("edges is not an array");
+  if (errors.length) return { errors };
+
+  const str = (v: unknown, fallback = "") => (typeof v === "string" ? v : fallback);
+  const bool = (v: unknown) => v === true;
+
+  const nodes: GraphNode[] = [];
+  for (const [i, raw] of (obj.nodes as unknown[]).entries()) {
+    const n = raw as Record<string, unknown>;
+    if (!n || typeof n !== "object") {
+      errors.push(`nodes.${i}: not an object`);
+      continue;
+    }
+    const id = str(n.id);
+    const label = str(n.label);
+    if (!id) errors.push(`nodes.${i}.id: required`);
+    if (!label) errors.push(`nodes.${i}.label: required`);
+    const kind = n.kind as NodeKind;
+    const lane = n.lane as Lane;
+    if (!NODE_KINDS.includes(kind)) errors.push(`nodes.${i}.kind: ${JSON.stringify(n.kind)}`);
+    if (!LANES.includes(lane)) errors.push(`nodes.${i}.lane: ${JSON.stringify(n.lane)}`);
+    const pin = n.pin as { x: unknown; y: unknown } | null | undefined;
+    nodes.push({
+      id,
+      label,
+      kind,
+      lane,
+      done: bool(n.done),
+      note: str(n.note),
+      wiki: str(n.wiki),
+      verify: bool(n.verify),
+      pin:
+        pin && typeof pin.x === "number" && typeof pin.y === "number"
+          ? { x: pin.x, y: pin.y }
+          : null,
+    });
+  }
+
+  const edges: GraphEdge[] = [];
+  for (const [i, raw] of (obj.edges as unknown[]).entries()) {
+    const e = raw as Record<string, unknown>;
+    if (!e || typeof e !== "object") {
+      errors.push(`edges.${i}: not an object`);
+      continue;
+    }
+    const from = str(e.from);
+    const to = str(e.to);
+    if (!from) errors.push(`edges.${i}.from: required`);
+    if (!to) errors.push(`edges.${i}.to: required`);
+    const type = e.type as EdgeType;
+    if (!EDGE_TYPES.includes(type)) errors.push(`edges.${i}.type: ${JSON.stringify(e.type)}`);
+    edges.push({ from, to, type, note: str(e.note), verify: bool(e.verify) });
+  }
+
+  if (errors.length) return { errors };
+
+  const graph: Graph = { version: 1, nodes, edges };
+  const structural = validateGraph(graph);
+  return structural.length ? { errors: structural } : { graph };
+}
+
 /** Structural problems a shape check can't see. Returns human-readable errors. */
 export function validateGraph(g: Graph): string[] {
   const errors: string[] = [];

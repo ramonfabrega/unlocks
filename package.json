@@ -10,7 +10,8 @@
     "dev": "UNLOCKS_DEV=1 bun --hot src/server.ts",
     "typecheck": "bun tsc --noEmit",
     "check": "biome check --write",
-    "ci": "biome ci"
+    "ci": "biome ci",
+    "build": "bun src/build.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.12",
