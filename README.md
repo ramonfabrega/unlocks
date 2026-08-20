@@ -207,12 +207,43 @@ ever becomes worth tracking on its own.
 | `graph.json`      | the data |
 | `src/schema.ts`   | zod boundary + structural validation (cycles, dangling edges) |
 | `src/derive.ts`   | status, leverage, ancestry, layout — all pure, shared with the browser |
+| `src/audit.ts`    | the modelling checker behind `bun run audit` |
+| `src/log.ts`      | commit messages, diffed from the previous graph |
 | `src/server.ts`   | Bun server, file writes, git commits |
 | `web/`            | the UI (bundled by Bun's HTML import — no build step) |
 
 ```
-bun test           # derived semantics + the acyclic invariant
+bun test           # derived semantics, layout invariants, log, audit
 bun run typecheck
 bun run check      # biome
+bun run audit      # "did I mean that" — see below
 bun run dev        # hot reload + Bun's error overlay
 ```
+
+The server binds every interface so a phone on the same wifi can reach it, and
+there is no auth — anyone on your network can edit the graph. `HOST=127.0.0.1`
+closes that when you're only on the laptop. The banner tells you which you got.
+
+## Did I mean that?
+
+`bun run audit` asks the questions the schema can't. Not "is this valid" — that
+is already enforced — but "does this edge type match the kinds of node at either
+end", which is the mistake you actually make when filling the graph in from
+memory at 1am.
+
+```
+? grants points at an activity
+    grants means the target is a thing you receive. If doing the first
+    unlocks the second, that is `hard`.
+
+      Slayer grind --grants--> Kraken
+```
+
+It also finds items nothing drops, nodes wired to nothing, blocking edges that a
+longer path already implies, and whatever is still flagged `verify`.
+
+Every finding is a **question, not an error**, and some will be deliberate — it
+never fails a build. The bar it holds itself to is precision: on the seed graph
+it raises two things to check out of 62 edges. A checker that fires on half your
+graph gets ignored in a week, so each rule is tested both ways — that it catches
+the mistake, and that it stays quiet on the correct modelling it resembles.
