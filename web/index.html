@@ -35,6 +35,14 @@
         <span class="save save-state">saved</span>
       </header>
 
+      <!-- Shown only when no server answered, in which case this browser holds
+           the only copy — so it goes above the fold, not in the footer where it
+           needs scrolling to. -->
+      <p id="local-note" class="local-only">
+        No server. This graph lives in <b>this browser only</b> — use
+        <b>export</b> below to keep a copy.
+      </p>
+
       <input id="search" type="search" placeholder="Search nodes…" autocomplete="off" />
 
       <section class="block">
@@ -92,10 +100,6 @@
           <button id="import" type="button" title="Replace the graph from a file">import</button>
           <input id="import-file" type="file" accept="application/json,.json" hidden />
         </div>
-        <!-- Only shown when no server answered: then this copy is the only copy. -->
-        <p id="local-note" class="stats local-only">
-          No server — this graph lives in this browser only. Export to keep a copy.
-        </p>
         <p id="stats" class="stats"></p>
       </footer>
     </aside>

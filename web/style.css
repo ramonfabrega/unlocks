@@ -781,5 +781,18 @@ button.primary {
 }
 body.local .local-only {
   display: block;
-  color: var(--ready);
+}
+
+#local-note {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #e0c48a;
+  background: #2a2113;
+  border: 1px solid #4a3a1c;
+  border-radius: 6px;
+}
+#local-note b {
+  font-weight: 600;
 }

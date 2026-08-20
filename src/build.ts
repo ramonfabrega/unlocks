@@ -36,7 +36,47 @@ for (const out of result.outputs) {
   total += size;
   console.log(`  ${(size / 1024).toFixed(1).padStart(7)} KB  ${out.path.slice(OUT.length + 1)}`);
 }
-console.log(`  ${(total / 1024).toFixed(1).padStart(7)} KB  total\n`);
+console.log(`  ${(total / 1024).toFixed(1).padStart(7)} KB  total`);
+
+/**
+ * And the same thing again as one file.
+ *
+ * Sending someone a directory of hash-named assets means sending them a web
+ * server too. Inlined, it is a single link, or an attachment, or a thing you
+ * double-click out of your downloads folder — and there are no asset paths left
+ * to break when it is served from some nested prefix.
+ */
+const single = join(OUT, "unlocks.html");
+let html = await Bun.file(join(OUT, "index.html")).text();
+
+for (const out of result.outputs) {
+  const name = out.path.slice(OUT.length + 1);
+  if (name.endsWith(".css")) {
+    const css = await Bun.file(out.path).text();
+    html = html.replace(
+      new RegExp(`<link[^>]*href="\\./${name}"[^>]*>`),
+      `<style>\n${css}\n</style>`,
+    );
+  } else if (name.endsWith(".js")) {
+    const js = await Bun.file(out.path).text();
+    // A literal </script> anywhere in the source would close the tag early.
+    html = html.replace(
+      new RegExp(`<script[^>]*src="\\./${name}"[^>]*>\\s*</script>`),
+      `<script type="module">\n${js.replaceAll("</script", "<\\/script")}\n</script>`,
+    );
+  }
+}
+
+if (html.includes("./chunk-")) {
+  console.error("\n  single-file build still references a chunk — inlining missed something\n");
+  process.exit(1);
+}
+await Bun.write(single, html);
+console.log(
+  `  ${(Buffer.byteLength(html) / 1024).toFixed(1).padStart(7)} KB  unlocks.html (self-contained)\n`,
+);
+
 console.log(`  ${OUT}\n`);
-console.log("  Serve that directory anywhere. With no /api/graph behind it the");
-console.log("  graph lives in localStorage, and export is the way out.\n");
+console.log("  Serve the directory anywhere, or hand someone unlocks.html on its own.");
+console.log("  With no /api/graph behind it the graph lives in localStorage,");
+console.log("  and export is the way out.\n");

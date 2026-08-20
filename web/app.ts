@@ -154,6 +154,10 @@ async function load(): Promise<void> {
     backend = "local";
     graph = readLocal() ?? (example as Graph);
     document.body.classList.add("local");
+    // The sidebar notice is behind a closed drawer on a phone, which is exactly
+    // where someone is most likely to be running the static build. The status
+    // indicator is in the topbar, so say it there too.
+    setStatus("local only", "dirty");
   }
 
   const restored = loadSession();
