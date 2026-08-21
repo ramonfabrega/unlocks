@@ -453,7 +453,7 @@
       "pin": null
     },
     {
-      "id": "new-node",
+      "id": "colosseum",
       "label": "Colosseum",
       "kind": "activity",
       "lane": "pvm",
@@ -464,7 +464,7 @@
       "pin": null
     },
     {
-      "id": "new-node-2",
+      "id": "kraken",
       "label": "Kraken",
       "kind": "activity",
       "lane": "slayer",
@@ -475,7 +475,7 @@
       "pin": null
     },
     {
-      "id": "new-node-3",
+      "id": "tentacle-whip",
       "label": "Tentacle whip",
       "kind": "item",
       "lane": "slayer",
@@ -486,7 +486,7 @@
       "pin": null
     },
     {
-      "id": "new-node-4",
+      "id": "2x-death-charge",
       "label": "2x Death Charge",
       "kind": "item",
       "lane": "pvm",
@@ -497,7 +497,7 @@
       "pin": null
     },
     {
-      "id": "new-node-5",
+      "id": "ultor-ring",
       "label": "Ultor ring",
       "kind": "item",
       "lane": "pvm",
@@ -508,7 +508,7 @@
       "pin": null
     },
     {
-      "id": "new-node-6",
+      "id": "vardorvis",
       "label": "Vardorvis",
       "kind": "activity",
       "lane": "pvm",
@@ -519,7 +519,7 @@
       "pin": null
     },
     {
-      "id": "new-node-7",
+      "id": "noxious-halberd",
       "label": "Noxious halberd",
       "kind": "item",
       "lane": "slayer",
@@ -530,7 +530,7 @@
       "pin": null
     },
     {
-      "id": "new-node-8",
+      "id": "golem-crafting",
       "label": "Golem Crafting",
       "kind": "activity",
       "lane": "skilling",
@@ -541,7 +541,7 @@
       "pin": null
     },
     {
-      "id": "new-node-9",
+      "id": "quiver",
       "label": "Quiver",
       "kind": "item",
       "lane": "pvm",
@@ -552,7 +552,7 @@
       "pin": null
     },
     {
-      "id": "new-node-10",
+      "id": "inferno",
       "label": "Inferno",
       "kind": "activity",
       "lane": "pvm",
@@ -563,7 +563,7 @@
       "pin": null
     },
     {
-      "id": "new-node-11",
+      "id": "infernal-cape",
       "label": "Infernal cape",
       "kind": "item",
       "lane": "pvm",
@@ -574,7 +574,7 @@
       "pin": null
     },
     {
-      "id": "new-node-12",
+      "id": "seers-ring",
       "label": "Seers ring",
       "kind": "item",
       "lane": "pvm",
@@ -585,7 +585,7 @@
       "pin": null
     },
     {
-      "id": "new-node-13",
+      "id": "dagannoth-kings",
       "label": "Dagannoth Kings",
       "kind": "activity",
       "lane": "pvm",
@@ -865,77 +865,77 @@
     },
     {
       "from": "rigour",
-      "to": "new-node",
+      "to": "colosseum",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
       "from": "full-crystal",
-      "to": "new-node",
+      "to": "colosseum",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-2",
-      "to": "new-node-3",
+      "from": "kraken",
+      "to": "tentacle-whip",
       "type": "grants",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-3",
-      "to": "new-node",
+      "from": "tentacle-whip",
+      "to": "colosseum",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
       "from": "lightbearer",
-      "to": "new-node",
+      "to": "colosseum",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
       "from": "yama",
-      "to": "new-node-4",
+      "to": "2x-death-charge",
       "type": "grants",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-4",
+      "from": "2x-death-charge",
       "to": "duke",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-4",
-      "to": "new-node",
+      "from": "2x-death-charge",
+      "to": "colosseum",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-6",
-      "to": "new-node-5",
+      "from": "vardorvis",
+      "to": "ultor-ring",
       "type": "grants",
       "note": "",
       "verify": false
     },
     {
       "from": "oathplate",
-      "to": "new-node-6",
+      "to": "vardorvis",
       "type": "soft",
       "note": "",
       "verify": false
     },
     {
       "from": "araxxor",
-      "to": "new-node-7",
+      "to": "noxious-halberd",
       "type": "grants",
       "note": "",
       "verify": false
@@ -949,7 +949,7 @@
     },
     {
       "from": "hunter-rumours",
-      "to": "new-node-8",
+      "to": "golem-crafting",
       "type": "hard",
       "note": "",
       "verify": false
@@ -963,28 +963,28 @@
     },
     {
       "from": "slayer-grind",
-      "to": "new-node-2",
+      "to": "kraken",
       "type": "hard",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node",
-      "to": "new-node-9",
+      "from": "colosseum",
+      "to": "quiver",
       "type": "grants",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-9",
-      "to": "new-node-10",
+      "from": "quiver",
+      "to": "inferno",
       "type": "hard",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-10",
-      "to": "new-node-11",
+      "from": "inferno",
+      "to": "infernal-cape",
       "type": "grants",
       "note": "",
       "verify": false
@@ -997,14 +997,14 @@
       "verify": false
     },
     {
-      "from": "new-node-13",
-      "to": "new-node-12",
+      "from": "dagannoth-kings",
+      "to": "seers-ring",
       "type": "grants",
       "note": "",
       "verify": false
     },
     {
-      "from": "new-node-12",
+      "from": "seers-ring",
       "to": "magus-ring",
       "type": "hard",
       "note": "",
@@ -1012,7 +1012,7 @@
     },
     {
       "from": "slayer-grind",
-      "to": "new-node-13",
+      "to": "dagannoth-kings",
       "type": "soft",
       "note": "",
       "verify": false
