@@ -964,7 +964,7 @@
     {
       "from": "slayer-grind",
       "to": "new-node-2",
-      "type": "grants",
+      "type": "hard",
       "note": "",
       "verify": false
     },
